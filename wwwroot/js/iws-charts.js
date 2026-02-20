@@ -16,22 +16,22 @@ const IWSCharts = {
     // Параметры погоды
     weatherParameters: [
         { id: 'envTemp',   name: 'Температура',     unit: '°C', color: '#dc3545', property: 'environmentTemperature', visible: true,  order: 1, group: 'weather', icon: 'fa-temperature-high' },
-        { id: 'humidity',  name: 'Влажность',       unit: '%',  color: '#0d6efd', property: 'humidityPercentage',      visible: true,  order: 2, group: 'weather', icon: 'fa-tint' },
-        { id: 'dewPoint',  name: 'Точка росы',      unit: '°C', color: '#17a2b8', property: 'dewPoint',                visible: true,  order: 3, group: 'weather', icon: 'fa-water' },
+        { id: 'humidity',  name: 'Влажность',       unit: '%',  color: '#0d6efd', property: 'humidityPercentage',      visible: false,  order: 2, group: 'weather', icon: 'fa-tint' },
+        { id: 'dewPoint',  name: 'Точка росы',      unit: '°C', color: '#17a2b8', property: 'dewPoint',                visible: false,  order: 3, group: 'weather', icon: 'fa-water' },
         { id: 'co2',       name: 'CO₂',             unit: 'ppm',color: '#6f42c1', property: 'co2Level',                visible: false, order: 4, group: 'weather', icon: 'fa-wind' }
     ],
 
     // Параметры ветра
     windParameters: [
         { id: 'windSpeed',    name: 'Скорость ветра', unit: 'м/с', color: '#28a745', property: 'windSpeed',     visible: true,  order: 1, group: 'wind', icon: 'fa-wind' },
-        { id: 'windDirection',name: 'Направление',    unit: '°',   color: '#fd7e14', property: 'windDirection', visible: true,  order: 2, group: 'wind', icon: 'fa-compass' },
+        { id: 'windDirection',name: 'Направление',    unit: '°',   color: '#fd7e14', property: 'windDirection', visible: false,  order: 2, group: 'wind', icon: 'fa-compass' },
         { id: 'windVSound',   name: 'Скорость звука', unit: 'м/с', color: '#20c997', property: 'windVSound',    visible: false, order: 3, group: 'wind', icon: 'fa-volume-up' }
     ],
 
     // Параметры осадков
     precipitationParameters: [
         { id: 'precipIntensity', name: 'Интенсивность', unit: 'мм/ч', color: '#0d6efd', property: 'precipitationIntensity', visible: true,  order: 1, group: 'precipitation', icon: 'fa-cloud-rain' },
-        { id: 'precipQuantity',  name: 'Количество',    unit: 'мм',   color: '#17a2b8', property: 'precipitationQuantity',  visible: true,  order: 2, group: 'precipitation', icon: 'fa-chart-line' },
+        { id: 'precipQuantity',  name: 'Количество',    unit: 'мм',   color: '#17a2b8', property: 'precipitationQuantity',  visible: false,  order: 2, group: 'precipitation', icon: 'fa-chart-line' },
         { id: 'precipType',      name: 'Тип осадков',   unit: '',     color: '#6c757d', property: 'precipitationType',     visible: false, order: 3, group: 'precipitation', icon: 'fa-question' },
         { id: 'precipElapsed',   name: 'Время осадков', unit: 'с',    color: '#ffc107', property: 'precipitationElapsed',  visible: false, order: 4, group: 'precipitation', icon: 'fa-clock' },
         { id: 'precipPeriod',    name: 'Период',        unit: 'с',    color: '#dc3545', property: 'precipitationPeriod',   visible: false, order: 5, group: 'precipitation', icon: 'fa-hourglass' }
@@ -40,15 +40,15 @@ const IWSCharts = {
     // Параметры давления
     pressureParameters: [
         { id: 'pressureHpa',   name: 'Давление (гПа)', unit: 'гПа', color: '#6610f2', property: 'pressureHpa',     visible: true, order: 1, group: 'pressure', icon: 'fa-thermometer-half' },
-        { id: 'pressureQNH',   name: 'QNH (гПа)',      unit: 'гПа', color: '#6f42c1', property: 'pressureQNHHpa',  visible: true, order: 2, group: 'pressure', icon: 'fa-thermometer-half' },
-        { id: 'pressureMmHg',  name: 'Давление (мм рт.ст.)', unit: 'мм', color: '#e83e8c', property: 'pressureMmHg', visible: true, order: 3, group: 'pressure', icon: 'fa-thermometer-half' }
+        { id: 'pressureQNH',   name: 'QNH (гПа)',      unit: 'гПа', color: '#6f42c1', property: 'pressureQNHHpa',  visible: false, order: 2, group: 'pressure', icon: 'fa-thermometer-half' },
+        { id: 'pressureMmHg',  name: 'Давление (мм рт.ст.)', unit: 'мм', color: '#e83e8c', property: 'pressureMmHg', visible: false, order: 3, group: 'pressure', icon: 'fa-thermometer-half' }
     ],
 
     // Параметры позиционирования
     positionParameters: [
-        { id: 'latitude',  name: 'Широта',      unit: '°', color: '#28a745', property: 'iwsLatitude',  visible: false, order: 1, group: 'position', icon: 'fa-map-pin' },
+        { id: 'latitude',  name: 'Широта',      unit: '°', color: '#28a745', property: 'iwsLatitude',  visible: true, order: 1, group: 'position', icon: 'fa-map-pin' },
         { id: 'longitude', name: 'Долгота',     unit: '°', color: '#17a2b8', property: 'iwsLongitude', visible: false, order: 2, group: 'position', icon: 'fa-map-pin' },
-        { id: 'altitude',  name: 'Высота',      unit: 'м', color: '#ffc107', property: 'altitude',     visible: true,  order: 3, group: 'position', icon: 'fa-mountain' },
+        { id: 'altitude',  name: 'Высота',      unit: 'м', color: '#ffc107', property: 'altitude',     visible: false,  order: 3, group: 'position', icon: 'fa-mountain' },
         { id: 'gpsSpeed',  name: 'Скорость GPS',unit: 'м/с',color: '#dc3545', property: 'gpsSpeed',     visible: false, order: 4, group: 'position', icon: 'fa-tachometer-alt' }
     ],
 
@@ -75,7 +75,7 @@ const IWSCharts = {
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
-        this.createParameterCheckboxes();
+        this.createParameterRadios();
         this.loadData(1); // загружаем за 24 часа по умолчанию
 
         // Обработчик кнопок периода
@@ -95,8 +95,8 @@ const IWSCharts = {
             this.loadData(days);
         });
 
-        // Обработчик выбора типа графика
-        $('#iwsChartTypeSelect').off('change').on('change', (e) => {
+        // Обработчик выбора типа графика (радио-кнопки)
+        $('input[name="iwsChartType"]').off('change').on('change', (e) => {
             this.currentChartType = $(e.currentTarget).val();
             this.renderChart();
         });
@@ -118,8 +118,8 @@ const IWSCharts = {
             this.updateStatistics();
         });
 
-        // Обработчик изменения чекбоксов
-        $(document).on('change', '.iws-parameter-checkbox', () => {
+        // Обработчик изменения радио-кнопок
+        $(document).on('change', '.iws-parameter-radio', () => {
             this.updateVisibleParameters();
             this.renderChart();
             this.updateStatistics();
@@ -144,41 +144,44 @@ const IWSCharts = {
         this.startAutoUpdate();
     },
 
-    createParameterCheckboxes: function() {
-        // Создаем чекбоксы для каждой группы
-        this.createCheckboxGroup('weather', this.weatherParameters);
-        this.createCheckboxGroup('wind', this.windParameters);
-        this.createCheckboxGroup('precipitation', this.precipitationParameters);
-        this.createCheckboxGroup('pressure', this.pressureParameters);
-        this.createCheckboxGroup('position', this.positionParameters);
-        this.createCheckboxGroup('technical', this.technicalParameters);
+    createParameterRadios: function() {
+        // Создаем радио-кнопки для каждой группы
+        this.createRadioGroup('weather', this.weatherParameters);
+        this.createRadioGroup('wind', this.windParameters);
+        this.createRadioGroup('precipitation', this.precipitationParameters);
+        this.createRadioGroup('pressure', this.pressureParameters);
+        this.createRadioGroup('position', this.positionParameters);
+        this.createRadioGroup('technical', this.technicalParameters);
     },
 
-    createCheckboxGroup: function(groupName, parameters) {
-        const container = $(`#iws${groupName.charAt(0).toUpperCase() + groupName.slice(1)}Checkboxes`);
+    createRadioGroup: function(groupName, parameters) {
+        const container = $(`#iws${groupName.charAt(0).toUpperCase() + groupName.slice(1)}Radios`);
         if (!container.length) return;
 
         container.empty();
         
         // Сортируем и добавляем параметры
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
-            container.append(this.createCheckbox(p, groupName));
+            container.append(this.createRadio(p, groupName));
         });
     },
 
-    createCheckbox: function(param, group) {
-        const groupCap = group.charAt(0).toUpperCase() + group.slice(1);
+    createRadio: function(param, group) {
+        const radioName = `iws_${group}_param`;
+        
         return $(`
             <div class="col-md-4 col-sm-6 mb-2">
                 <div class="form-check">
-                    <input class="form-check-input iws-parameter-checkbox"
-                           type="checkbox"
-                           id="iws_param_${param.id}"
+                    <input class="form-check-input iws-parameter-radio"
+                           type="radio"
+                           name="${radioName}"
+                           id="iws_radio_${param.id}"
+                           value="${param.id}"
                            data-param-id="${param.id}"
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="iws_param_${param.id}">
+                    <label class="form-check-label small" for="iws_radio_${param.id}">
                         <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
                         <span style="display:inline-block;width:8px;height:8px;background-color:${param.color};border-radius:50%;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
@@ -189,13 +192,19 @@ const IWSCharts = {
     },
 
     updateVisibleParameters: function() {
-        // Обновляем видимость для всех групп параметров
-        this.weatherParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
-        this.windParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
-        this.precipitationParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
-        this.pressureParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
-        this.positionParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
-        this.technicalParameters.forEach(p => p.visible = $(`#iws_param_${p.id}`).is(':checked'));
+        // Обновляем видимость для всех групп параметров на основе выбранной радио-кнопки
+        const updateGroup = (groupParams, groupName) => {
+            groupParams.forEach(p => {
+                p.visible = $(`#iws_radio_${p.id}`).is(':checked');
+            });
+        };
+        
+        updateGroup(this.weatherParameters, 'weather');
+        updateGroup(this.windParameters, 'wind');
+        updateGroup(this.precipitationParameters, 'precipitation');
+        updateGroup(this.pressureParameters, 'pressure');
+        updateGroup(this.positionParameters, 'position');
+        updateGroup(this.technicalParameters, 'technical');
     },
 
     getSelectedParameters: function() {
@@ -459,7 +468,7 @@ const IWSCharts = {
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Нет выбранных параметров',
+                            text: 'Нет выбранного параметра',
                             color: '#666',
                             font: { size: 14 }
                         }
@@ -629,7 +638,7 @@ const IWSCharts = {
 
         const selected = this.getSelectedParameters();
         if (!selected.length) {
-            container.html('<div class="col-12 text-center text-muted">Нет выбранных параметров</div>');
+            container.html('<div class="col-12 text-center text-muted">Нет выбранного параметра</div>');
             return;
         }
 
@@ -656,7 +665,7 @@ const IWSCharts = {
             };
 
             const col = $(`
-                <div class="col-md-4 col-sm-6 mb-2">
+                <div class="col-md-12">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${param.color} !important;">
                         <div class="small text-muted">
                             <i class="fas ${param.icon || 'fa-chart-line'} me-1"></i> ${param.name}

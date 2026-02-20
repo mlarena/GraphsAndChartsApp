@@ -13,8 +13,8 @@ const DUSTCharts = {
 
     pmParameters: [
         { id: 'pm10act', name: 'PM10 акт.', unit: 'мг/м³', color: '#dc3545', property: 'pm10Act', visible: true, order: 1, group: 'pm' },
-        { id: 'pm25act', name: 'PM2.5 акт.', unit: 'мг/м³', color: '#fd7e14', property: 'pm25Act', visible: true, order: 2, group: 'pm' },
-        { id: 'pm1act',  name: 'PM1 акт.',  unit: 'мг/м³', color: '#ffc107', property: 'pm1Act',  visible: true, order: 3, group: 'pm' },
+        { id: 'pm25act', name: 'PM2.5 акт.', unit: 'мг/м³', color: '#fd7e14', property: 'pm25Act', visible: false, order: 2, group: 'pm' },
+        { id: 'pm1act',  name: 'PM1 акт.',  unit: 'мг/м³', color: '#ffc107', property: 'pm1Act',  visible: false, order: 3, group: 'pm' },
         { id: 'pm10awg', name: 'PM10 ср.',  unit: 'мг/м³', color: '#20c997', property: 'pm10Awg', visible: false, order: 4, group: 'pm' },
         { id: 'pm25awg', name: 'PM2.5 ср.', unit: 'мг/м³', color: '#0d6efd', property: 'pm25Awg', visible: false, order: 5, group: 'pm' },
         { id: 'pm1awg',  name: 'PM1 ср.',  unit: 'мг/м³', color: '#6610f2', property: 'pm1Awg', visible: false, order: 6, group: 'pm' }
@@ -22,10 +22,10 @@ const DUSTCharts = {
 
     technicalParameters: [
         { id: 'flow',     name: 'Поток пробы',   unit: '',     color: '#17a2b8', property: 'flowProbe',      visible: true, order: 1, group: 'technical' },
-        { id: 'temp',     name: 'Температура',   unit: '°C',   color: '#dc3545', property: 'temperatureProbe',visible: true, order: 2, group: 'technical' },
-        { id: 'humidity', name: 'Влажность',     unit: '%',    color: '#0d6efd', property: 'humidityProbe',   visible: true, order: 3, group: 'technical' },
-        { id: 'laser',    name: 'Статус лазера', unit: '',     color: '#6c757d', property: 'laserStatus',     visible: false,order: 4, group: 'technical' },
-        { id: 'voltage',  name: 'Напряжение',    unit: 'В',    color: '#28a745', property: 'supplyVoltage',   visible: true, order: 5, group: 'technical' }
+        { id: 'temp',     name: 'Температура',   unit: '°C',   color: '#dc3545', property: 'temperatureProbe',visible: false, order: 2, group: 'technical' },
+        { id: 'humidity', name: 'Влажность',     unit: '%',    color: '#0d6efd', property: 'humidityProbe',   visible: false, order: 3, group: 'technical' },
+        { id: 'laser',    name: 'Статус лазера', unit: '',     color: '#6c757d', property: 'laserStatus',     visible: false, order: 4, group: 'technical' },
+        { id: 'voltage',  name: 'Напряжение',    unit: 'В',    color: '#28a745', property: 'supplyVoltage',   visible: false, order: 5, group: 'technical' }
     ],
 
     autoUpdateEnabled: true,
@@ -40,7 +40,7 @@ const DUSTCharts = {
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
-        this.createParameterCheckboxes();
+        this.createParameterRadios();
         this.loadData(1);
 
         $('#dustTimeRangeButtons .btn').off('click').on('click', (e) => {
@@ -54,7 +54,8 @@ const DUSTCharts = {
             this.loadData(days);
         });
 
-        $('#dustChartTypeSelect').off('change').on('change', (e) => {
+        // Обработчик типа графика (радио-кнопки)
+        $('input[name="dustChartType"]').off('change').on('change', (e) => {
             this.currentChartType = $(e.currentTarget).val();
             this.renderChart();
         });
@@ -66,7 +67,7 @@ const DUSTCharts = {
             this.updateStatistics();
         });
 
-        $(document).on('change', '.dust-parameter-checkbox', () => {
+        $(document).on('change', '.dust-parameter-radio', () => {
             this.updateVisibleParameters();
             this.renderChart();
             this.updateStatistics();
@@ -88,32 +89,36 @@ const DUSTCharts = {
         this.startAutoUpdate();
     },
 
-    createParameterCheckboxes: function() {
-        const pm = $('#dustPmCheckboxes');
+    createParameterRadios: function() {
+        const pm = $('#dustPmRadios');
         if (pm.length) {
             pm.empty();
-            this.pmParameters.sort((a,b)=>a.order-b.order).forEach(p => pm.append(this.createCheckbox(p, 'pm')));
+            this.pmParameters.sort((a,b)=>a.order-b.order).forEach(p => pm.append(this.createRadio(p, 'pm')));
         }
 
-        const tech = $('#dustTechnicalCheckboxes');
+        const tech = $('#dustTechnicalRadios');
         if (tech.length) {
             tech.empty();
-            this.technicalParameters.sort((a,b)=>a.order-b.order).forEach(p => tech.append(this.createCheckbox(p, 'technical')));
+            this.technicalParameters.sort((a,b)=>a.order-b.order).forEach(p => tech.append(this.createRadio(p, 'technical')));
         }
     },
 
-    createCheckbox: function(param, group) {
+    createRadio: function(param, group) {
+        const radioName = `dust_${group}_param`;
+        
         return $(`
             <div class="col-md-4 col-sm-6 mb-2">
                 <div class="form-check">
-                    <input class="form-check-input dust-parameter-checkbox"
-                           type="checkbox"
-                           id="dust_param_${param.id}"
+                    <input class="form-check-input dust-parameter-radio"
+                           type="radio"
+                           name="${radioName}"
+                           id="dust_radio_${param.id}"
+                           value="${param.id}"
                            data-param-id="${param.id}"
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="dust_param_${param.id}">
+                    <label class="form-check-label small" for="dust_radio_${param.id}">
                         <span style="display:inline-block;width:12px;height:12px;background-color:${param.color};border-radius:2px;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
@@ -123,8 +128,12 @@ const DUSTCharts = {
     },
 
     updateVisibleParameters: function() {
-        this.pmParameters.forEach(p => p.visible = $(`#dust_param_${p.id}`).is(':checked'));
-        this.technicalParameters.forEach(p => p.visible = $(`#dust_param_${p.id}`).is(':checked'));
+        this.pmParameters.forEach(p => {
+            p.visible = $(`#dust_radio_${p.id}`).is(':checked');
+        });
+        this.technicalParameters.forEach(p => {
+            p.visible = $(`#dust_radio_${p.id}`).is(':checked');
+        });
     },
 
     getSelectedParameters: function() {
@@ -317,7 +326,25 @@ const DUSTCharts = {
         if (this.chart) this.chart.destroy();
 
         const selected = this.getSelectedParameters();
-        if (!selected.length) return;
+        if (!selected.length) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет выбранного параметра',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const datasets = [];
 
@@ -406,7 +433,7 @@ const DUSTCharts = {
 
         const selected = this.getSelectedParameters();
         if (!selected.length) {
-            container.html('<div class="col-12 text-center text-muted">Нет выбранных параметров</div>');
+            container.html('<div class="col-12 text-center text-muted">Нет выбранного параметра</div>');
             return;
         }
 
@@ -426,7 +453,7 @@ const DUSTCharts = {
             const cur = vals[vals.length-1];
 
             const col = $(`
-                <div class="col-md-4 col-sm-6 mb-2">
+                <div class="col-md-12">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
                         <div class="small text-muted">${p.name}</div>
                         <div class="d-flex justify-content-between mt-1">

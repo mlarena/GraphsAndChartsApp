@@ -46,11 +46,16 @@
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="text-muted me-2">Тип графика:</span>
-                        <select id="mueksChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="line" selected>Линейный</option>
-                            <option value="scatter">Точечный</option>
-                            <option value="bar">Столбчатый</option>
-                        </select>
+                        <div class="btn-group" role="group" id="mueksChartTypeRadio">
+                            <input type="radio" class="btn-check" name="mueksChartType" id="mueksChartTypeLine" value="line" autocomplete="off" checked>
+                            <label class="btn btn-outline-danger btn-sm" for="mueksChartTypeLine">Линейный</label>
+                            
+                            <input type="radio" class="btn-check" name="mueksChartType" id="mueksChartTypeScatter" value="scatter" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm" for="mueksChartTypeScatter">Точечный</label>
+                            
+                            <input type="radio" class="btn-check" name="mueksChartType" id="mueksChartTypeBar" value="bar" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm" for="mueksChartTypeBar">Столбчатый</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -77,9 +82,10 @@
                         <div class="card">
                             <div class="card-header bg-light py-2">
                                 <h6 class="mb-0">Параметры напряжения (В)</h6>
+                                <span class="ms-auto text-muted small">(выберите один параметр)</span>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="mueksVoltageCheckboxes"></div>
+                                <div class="row" id="mueksVoltageRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -87,9 +93,10 @@
                         <div class="card">
                             <div class="card-header bg-light py-2">
                                 <h6 class="mb-0">Параметры тока (А)</h6>
+                                <span class="ms-auto text-muted small">(выберите один параметр)</span>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="mueksCurrentCheckboxes"></div>
+                                <div class="row" id="mueksCurrentRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -97,9 +104,10 @@
                         <div class="card">
                             <div class="card-header bg-light py-2">
                                 <h6 class="mb-0">Параметры энергии</h6>
+                                <span class="ms-auto text-muted small">(выберите один параметр)</span>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="mueksEnergyCheckboxes"></div>
+                                <div class="row" id="mueksEnergyRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -107,9 +115,10 @@
                         <div class="card">
                             <div class="card-header bg-light py-2">
                                 <h6 class="mb-0">Статусы и температура</h6>
+                                <span class="ms-auto text-muted small">(выберите один параметр)</span>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="mueksStatusCheckboxes"></div>
+                                <div class="row" id="mueksStatusRadios"></div>
                             </div>
                         </div>
                     </div>

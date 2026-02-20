@@ -84,11 +84,16 @@
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="text-muted me-2">Тип графика:</span>
-                        <select id="iwsChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="line" selected>Линейный</option>
-                            <option value="scatter">Точечный</option>
-                            <option value="bar">Столбчатый</option>
-                        </select>
+                        <div class="btn-group" role="group" id="iwsChartTypeRadio">
+                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeLine" value="line" autocomplete="off" checked>
+                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeLine">Линейный</label>
+                            
+                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeScatter" value="scatter" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeScatter">Точечный</label>
+                            
+                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeBar" value="bar" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeBar">Столбчатый</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -105,10 +110,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-temperature-high text-success me-2"></i>
                                     <h6 class="mb-0">Параметры погоды</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsWeatherCheckboxes"></div>
+                                <div class="row" id="iwsWeatherRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -120,10 +126,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-wind text-success me-2"></i>
                                     <h6 class="mb-0">Параметры ветра</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsWindCheckboxes"></div>
+                                <div class="row" id="iwsWindRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -135,10 +142,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-cloud-rain text-success me-2"></i>
                                     <h6 class="mb-0">Параметры осадков</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsPrecipitationCheckboxes"></div>
+                                <div class="row" id="iwsPrecipitationRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -150,10 +158,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-thermometer-half text-success me-2"></i>
                                     <h6 class="mb-0">Параметры давления</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsPressureCheckboxes"></div>
+                                <div class="row" id="iwsPressureRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -165,10 +174,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-map-pin text-success me-2"></i>
                                     <h6 class="mb-0">Параметры позиционирования</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsPositionCheckboxes"></div>
+                                <div class="row" id="iwsPositionRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -180,10 +190,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-cogs text-success me-2"></i>
                                     <h6 class="mb-0">Технические параметры</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="iwsTechnicalCheckboxes"></div>
+                                <div class="row" id="iwsTechnicalRadios"></div>
                             </div>
                         </div>
                     </div>

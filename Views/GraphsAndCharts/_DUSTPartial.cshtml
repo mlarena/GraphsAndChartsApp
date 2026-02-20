@@ -64,11 +64,16 @@
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="text-muted me-2">Тип графика:</span>
-                        <select id="dustChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="line" selected>Линейный</option>
-                            <option value="scatter">Точечный</option>
-                            <option value="bar">Столбчатый</option>
-                        </select>
+                        <div class="btn-group" role="group" id="dustChartTypeRadio">
+                            <input type="radio" class="btn-check" name="dustChartType" id="dustChartTypeLine" value="line" autocomplete="off" checked>
+                            <label class="btn btn-outline-warning btn-sm" for="dustChartTypeLine">Линейный</label>
+                            
+                            <input type="radio" class="btn-check" name="dustChartType" id="dustChartTypeScatter" value="scatter" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm" for="dustChartTypeScatter">Точечный</label>
+                            
+                            <input type="radio" class="btn-check" name="dustChartType" id="dustChartTypeBar" value="bar" autocomplete="off">
+                            <label class="btn btn-outline-warning btn-sm" for="dustChartTypeBar">Столбчатый</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -84,11 +89,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-chart-line text-warning me-2"></i>
                                     <h6 class="mb-0">Параметры концентрации частиц</h6>
-                                    <span class="ms-auto text-muted small">(мг/м³)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dustPmCheckboxes"></div>
+                                <div class="row" id="dustPmRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -99,10 +104,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-cogs text-warning me-2"></i>
                                     <h6 class="mb-0">Технические параметры</h6>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dustTechnicalCheckboxes"></div>
+                                <div class="row" id="dustTechnicalRadios"></div>
                             </div>
                         </div>
                     </div>

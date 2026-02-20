@@ -13,14 +13,14 @@ const MUEKSCharts = {
 
     voltageParameters: [
         { id: 'voltageIn12b', name: 'Напряжение вх. 12В', unit: 'В', color: '#dc3545', property: 'voltagePowerIn12b', visible: true, order: 1, group: 'voltage', icon: 'fa-bolt' },
-        { id: 'voltageOut12b',name: 'Напряжение вых. 12В',unit: 'В', color: '#fd7e14', property: 'voltageOut12b',     visible: true, order: 2, group: 'voltage', icon: 'fa-bolt' },
-        { id: 'voltageAkb',   name: 'Напряжение АКБ',     unit: 'В', color: '#ffc107', property: 'voltageAkb',        visible: true, order: 3, group: 'voltage', icon: 'fa-battery-half' }
+        { id: 'voltageOut12b',name: 'Напряжение вых. 12В',unit: 'В', color: '#fd7e14', property: 'voltageOut12b',     visible: false, order: 2, group: 'voltage', icon: 'fa-bolt' },
+        { id: 'voltageAkb',   name: 'Напряжение АКБ',     unit: 'В', color: '#ffc107', property: 'voltageAkb',        visible: false, order: 3, group: 'voltage', icon: 'fa-battery-half' }
     ],
 
     currentParameters: [
         { id: 'currentOut12b',name: 'Ток вых. 12В', unit: 'А', color: '#0d6efd', property: 'currentOut12b', visible: true, order: 1, group: 'current', icon: 'fa-wave-square' },
-        { id: 'currentOut48b',name: 'Ток вых. 48В', unit: 'А', color: '#17a2b8', property: 'currentOut48b', visible: true, order: 2, group: 'current', icon: 'fa-wave-square' },
-        { id: 'currentAkb',   name: 'Ток АКБ',      unit: 'А', color: '#20c997', property: 'currentAkb',    visible: true, order: 3, group: 'current', icon: 'fa-battery-half' }
+        { id: 'currentOut48b',name: 'Ток вых. 48В', unit: 'А', color: '#17a2b8', property: 'currentOut48b', visible: false, order: 2, group: 'current', icon: 'fa-wave-square' },
+        { id: 'currentAkb',   name: 'Ток АКБ',      unit: 'А', color: '#20c997', property: 'currentAkb',    visible: false, order: 3, group: 'current', icon: 'fa-battery-half' }
     ],
 
     energyParameters: [
@@ -30,8 +30,8 @@ const MUEKSCharts = {
 
     statusParameters: [
         { id: 'temperature', name: 'Температура',   unit: '°C', color: '#28a745', property: 'temperatureBox', visible: true,  order: 1, group: 'status', icon: 'fa-thermometer-half' },
-        { id: 'sensor220b',  name: 'Датчик 220В',   unit: '',   color: '#dc3545', property: 'sensor220b',     visible: true,  order: 2, group: 'status', icon: 'fa-plug' },
-        { id: 'doorStatus',  name: 'Статус двери',  unit: '',   color: '#ffc107', property: 'doorStatus',      visible: true,  order: 3, group: 'status', icon: 'fa-door-open' }
+        { id: 'sensor220b',  name: 'Датчик 220В',   unit: '',   color: '#dc3545', property: 'sensor220b',     visible: false,  order: 2, group: 'status', icon: 'fa-plug' },
+        { id: 'doorStatus',  name: 'Статус двери',  unit: '',   color: '#ffc107', property: 'doorStatus',      visible: false,  order: 3, group: 'status', icon: 'fa-door-open' }
     ],
 
     tdsParameters: [
@@ -53,7 +53,7 @@ const MUEKSCharts = {
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
-        this.createAllCheckboxes();
+        this.createAllRadios();
         this.loadData(1);
 
         $('#mueksTimeRangeButtons .btn').off('click').on('click', (e) => {
@@ -67,7 +67,8 @@ const MUEKSCharts = {
             this.loadData(days);
         });
 
-        $('#mueksChartTypeSelect').off('change').on('change', (e) => {
+        // Обработчик типа графика (радио-кнопки)
+        $('input[name="mueksChartType"]').off('change').on('change', (e) => {
             this.currentChartType = $(e.currentTarget).val();
             if (this.currentTab !== 'tds') this.renderChart();
         });
@@ -87,7 +88,7 @@ const MUEKSCharts = {
             }
         });
 
-        $(document).on('change', '.mueks-parameter-checkbox', () => {
+        $(document).on('change', '.mueks-parameter-radio', () => {
             this.updateVisibleParameters();
             if (this.currentTab !== 'tds') {
                 this.renderChart();
@@ -111,37 +112,41 @@ const MUEKSCharts = {
         this.startAutoUpdate();
     },
 
-    createAllCheckboxes: function() {
-        this.createCheckboxesForGroup('voltage',  this.voltageParameters,  '#mueksVoltageCheckboxes');
-        this.createCheckboxesForGroup('current',  this.currentParameters,  '#mueksCurrentCheckboxes');
-        this.createCheckboxesForGroup('energy',   this.energyParameters,   '#mueksEnergyCheckboxes');
-        this.createCheckboxesForGroup('status',   this.statusParameters,   '#mueksStatusCheckboxes');
-        // TDS — без чекбоксов
+    createAllRadios: function() {
+        this.createRadiosForGroup('voltage',  this.voltageParameters,  '#mueksVoltageRadios');
+        this.createRadiosForGroup('current',  this.currentParameters,  '#mueksCurrentRadios');
+        this.createRadiosForGroup('energy',   this.energyParameters,   '#mueksEnergyRadios');
+        this.createRadiosForGroup('status',   this.statusParameters,   '#mueksStatusRadios');
+        // TDS — без радио-кнопок
     },
 
-    createCheckboxesForGroup: function(groupName, params, containerSelector) {
+    createRadiosForGroup: function(groupName, params, containerSelector) {
         const container = $(containerSelector);
         if (!container.length) return;
 
         container.empty();
 
         params.sort((a,b)=>a.order-b.order).forEach(p => {
-            container.append(this.createCheckboxColumn(p, groupName));
+            container.append(this.createRadioColumn(p, groupName));
         });
     },
 
-    createCheckboxColumn: function(param, group) {
+    createRadioColumn: function(param, group) {
+        const radioName = `mueks_${group}_param`;
+        
         return $(`
             <div class="col-md-4 col-sm-6 mb-2">
                 <div class="form-check">
-                    <input class="form-check-input mueks-parameter-checkbox"
-                           type="checkbox"
-                           id="mueks_param_${param.id}"
+                    <input class="form-check-input mueks-parameter-radio"
+                           type="radio"
+                           name="${radioName}"
+                           id="mueks_radio_${param.id}"
+                           value="${param.id}"
                            data-param-id="${param.id}"
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="mueks_param_${param.id}">
+                    <label class="form-check-label small" for="mueks_radio_${param.id}">
                         <span style="display:inline-block;width:12px;height:12px;background-color:${param.color};border-radius:2px;margin-right:4px;"></span>
                         <i class="fas ${param.icon} fa-xs text-muted me-1"></i>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
@@ -153,7 +158,7 @@ const MUEKSCharts = {
 
     updateVisibleParameters: function() {
         [...this.voltageParameters, ...this.currentParameters, ...this.energyParameters, ...this.statusParameters]
-            .forEach(p => p.visible = $(`#mueks_param_${p.id}`).is(':checked'));
+            .forEach(p => p.visible = $(`#mueks_radio_${p.id}`).is(':checked'));
     },
 
     getSelectedParameters: function() {
@@ -405,7 +410,25 @@ const MUEKSCharts = {
         if (this.chart) this.chart.destroy();
 
         const selected = this.getSelectedParameters().filter(p => !p.isText);
-        if (!selected.length) return;
+        if (!selected.length) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет выбранного параметра',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const datasets = [];
 
@@ -494,7 +517,7 @@ const MUEKSCharts = {
 
         const selected = this.getSelectedParameters().filter(p => !p.isText);
         if (!selected.length) {
-            container.html('<div class="col-12 text-center text-muted">Нет выбранных параметров</div>');
+            container.html('<div class="col-12 text-center text-muted">Нет выбранного параметра</div>');
             return;
         }
 
@@ -514,7 +537,7 @@ const MUEKSCharts = {
             const cur = vals[vals.length-1];
 
             const col = $(`
-                <div class="col-md-4 col-sm-6 mb-2">
+                <div class="col-md-12">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
                         <div class="small text-muted"><i class="fas ${p.icon} fa-xs me-1"></i>${p.name}</div>
                         <div class="d-flex justify-content-between mt-1">

@@ -90,11 +90,16 @@
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="text-muted me-2">Тип графика:</span>
-                        <select id="dspdChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="line" selected>Линейный</option>
-                            <option value="scatter">Точечный</option>
-                            <option value="bar">Столбчатый</option>
-                        </select>
+                        <div class="btn-group" role="group" id="dspdChartTypeRadio">
+                            <input type="radio" class="btn-check" name="dspdChartType" id="dspdChartTypeLine" value="line" autocomplete="off" checked>
+                            <label class="btn btn-outline-success btn-sm" for="dspdChartTypeLine">Линейный</label>
+                            
+                            <input type="radio" class="btn-check" name="dspdChartType" id="dspdChartTypeScatter" value="scatter" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="dspdChartTypeScatter">Точечный</label>
+                            
+                            <input type="radio" class="btn-check" name="dspdChartType" id="dspdChartTypeBar" value="bar" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="dspdChartTypeBar">Столбчатый</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -111,11 +116,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-road text-success me-2"></i>
                                     <h6 class="mb-0">Параметры состояния дороги</h6>
-                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dspdRoadConditionCheckboxes"></div>
+                                <div class="row" id="dspdRoadConditionRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -127,11 +132,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-cloud-rain text-success me-2"></i>
                                     <h6 class="mb-0">Параметры осадков на дороге</h6>
-                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dspdPrecipitationLayerCheckboxes"></div>
+                                <div class="row" id="dspdPrecipitationLayerRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -143,11 +148,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-cogs text-success me-2"></i>
                                     <h6 class="mb-0">Технические параметры датчика</h6>
-                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dspdTechnicalCheckboxes"></div>
+                                <div class="row" id="dspdTechnicalRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -159,11 +164,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-check-circle text-success me-2"></i>
                                     <h6 class="mb-0">Параметры калибровки и статуса</h6>
-                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dspdCalibrationCheckboxes"></div>
+                                <div class="row" id="dspdCalibrationRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -175,11 +180,11 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-map-pin text-success me-2"></i>
                                     <h6 class="mb-0">Параметры позиционирования</h6>
-                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
                                 </div>
                             </div>
                             <div class="card-body py-2">
-                                <div class="row" id="dspdPositionCheckboxes"></div>
+                                <div class="row" id="dspdPositionRadios"></div>
                             </div>
                         </div>
                     </div>
@@ -214,7 +219,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header bg-light py-2">
-                        <h6 class="mb-0"><i class="fas fa-info-circle text-success"></i> Статистика по выбранным параметрам</h6>
+                        <h6 class="mb-0"><i class="fas fa-info-circle text-success"></i> Статистика по выбранному параметру</h6>
                     </div>
                     <div class="card-body py-2">
                         <div class="row" id="dspdStatisticsContainer">
@@ -232,7 +237,7 @@
     <div class="spinner-border spinner-border-sm text-success" role="status">
         <span class="visually-hidden">Загрузка...</span>
     </div>
-    <span class="ms-2 text-muted small">Загрузка данных DSPD...  </span>
+    <span class="ms-2 text-muted small">Загрузка данных DSPD...</span>
 </div>
 
 <!-- ИНИЦИАЛИЗАЦИЯ -->

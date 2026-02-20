@@ -1,4 +1,4 @@
-// dov-charts.js - Полная версия (с обновлёнными селекторами после рефакторинга)
+// dov-charts.js - Полная версия (с радио-кнопками для выбора типа графика)
 
 const DOVCharts = {
     visibilityChart: null,
@@ -46,8 +46,8 @@ const DOVCharts = {
             this.loadData(days);
         });
 
-        // Обработчик выбора типа графика
-        $('#chartTypeSelect').off('change').on('change', (e) => {
+        // Обработчик выбора типа графика (радио-кнопки)
+        $('input[name="dovChartType"]').off('change').on('change', (e) => {
             this.currentChartType = $(e.currentTarget).val();
             this.toggleChart();
             this.updateChartTitle();
