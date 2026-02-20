@@ -48,29 +48,139 @@
             </div>
         </div>
 
+        <!-- Вкладки -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs bsp-chart-nav-tabs" id="dspdTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link active" id="road-condition-tab" data-bs-toggle="tab" data-bs-target="#road-condition" type="button" role="tab">
+                            <i class="fas fa-road"></i> Состояние дороги
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link" id="precipitation-layer-tab" data-bs-toggle="tab" data-bs-target="#precipitation-layer" type="button" role="tab">
+                            <i class="fas fa-cloud-rain"></i> Осадки на дороге
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button" role="tab">
+                            <i class="fas fa-cogs"></i> Технические
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link" id="calibration-tab" data-bs-toggle="tab" data-bs-target="#calibration" type="button" role="tab">
+                            <i class="fas fa-check-circle"></i> Калибровка
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link" id="position-tab" data-bs-toggle="tab" data-bs-target="#position" type="button" role="tab">
+                            <i class="fas fa-map-pin"></i> Позиция
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         <!-- Выбор периода -->
         <div class="row mb-3">
             <div class="col-md-12">
-                <div class="d-flex align-items-center justify-content-end">
-                    @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dspd", OutlineColor = "success", ActiveDays = 1 })
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dspd", OutlineColor = "success", ActiveDays = 1 })
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">Тип графика:</span>
+                        <select id="dspdChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="line" selected>Линейный</option>
+                            <option value="scatter">Точечный</option>
+                            <option value="bar">Столбчатый</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Панель выбора параметров -->
+        <!-- Параметры по вкладкам -->
         <div class="row mb-3">
             <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-light py-2">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-chart-line text-success me-2"></i>
-                            <h6 class="mb-0">Параметры для отображения</h6>
-                            <span class="ms-auto text-muted small">(выберите до 4 параметров)</span>
+                <div class="tab-content" id="dspdTabsContent">
+                    <!-- Состояние дороги -->
+                    <div class="tab-pane fade show active" id="road-condition" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-road text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры состояния дороги</h6>
+                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dspdRoadConditionCheckboxes"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body py-2">
-                        <div class="row" id="dspdParameterCheckboxes">
-                            <!-- Чекбоксы будут добавлены через JavaScript -->
+                    
+                    <!-- Осадки на дороге -->
+                    <div class="tab-pane fade" id="precipitation-layer" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cloud-rain text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры осадков на дороге</h6>
+                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dspdPrecipitationLayerCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Технические параметры -->
+                    <div class="tab-pane fade" id="technical" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cogs text-success me-2"></i>
+                                    <h6 class="mb-0">Технические параметры датчика</h6>
+                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dspdTechnicalCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Калибровка и статус -->
+                    <div class="tab-pane fade" id="calibration" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры калибровки и статуса</h6>
+                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dspdCalibrationCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Позиция -->
+                    <div class="tab-pane fade" id="position" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-map-pin text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры позиционирования</h6>
+                                    <span class="ms-auto text-muted small">(макс. 4 параметра)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dspdPositionCheckboxes"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -85,17 +195,11 @@
             <div class="card">
                 <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
-                        <i class="fas fa-chart-mixed text-success"></i>
+                        <i class="fas fa-chart-line text-success"></i>
                         <span id="dspdChartTitle">Параметры DSPD</span>
                     </h6>
                     <div class="d-flex align-items-center">
-                        <span class="text-muted small me-2">Тип графика:</span>
-                        <select id="dspdChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="line" selected>Линейный</option>
-                            <option value="scatter">Точечный</option>
-                            <option value="bar">Столбчатый</option>
-                        </select>
-                        <span class="text-muted small ms-3 me-2">Шкала:</span>
+                        <span class="text-muted small me-2">Шкала:</span>
                         <span id="dspdTimeScaleLabel" class="badge bg-secondary">авто</span>
                     </div>
                 </div>

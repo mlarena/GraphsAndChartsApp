@@ -11,22 +11,43 @@ const DSPDCharts = {
     sliderInitialized: false,
     currentDays: 1,
     currentChartType: 'line',
+    currentTab: 'roadCondition',
 
-    // Параметры для отображения
-    availableParameters: [
-        { id: 'grip', name: 'Коэф. сцепления', unit: '', color: '#28a745', property: 'gripCoefficient', visible: true, order: 1 },
-        { id: 'shake', name: 'Вибрация', unit: '', color: '#fd7e14', property: 'shakeLevel', visible: false, order: 2 },
-        { id: 'voltage', name: 'Напряжение', unit: 'В', color: '#6f42c1', property: 'voltagePower', visible: false, order: 3 },
-        { id: 'caseTemp', name: 'Темп. корпуса', unit: '°C', color: '#20c997', property: 'caseTemperature', visible: false, order: 4 },
-        { id: 'roadTemp', name: 'Темп. дороги', unit: '°C', color: '#dc3545', property: 'roadTemperature', visible: true, order: 5 },
-        { id: 'water', name: 'Вода', unit: 'мм', color: '#0d6efd', property: 'waterHeight', visible: false, order: 6 },
-        { id: 'ice', name: 'Лед', unit: 'мм', color: '#17a2b8', property: 'iceHeight', visible: false, order: 7 },
-        { id: 'snow', name: 'Снег', unit: 'мм', color: '#6c757d', property: 'snowHeight', visible: false, order: 8 },
-        { id: 'icePct', name: '% льда', unit: '%', color: '#6610f2', property: 'icePercentage', visible: false, order: 9 },
-        { id: 'pgmPct', name: '% ПГМ', unit: '%', color: '#e83e8c', property: 'pgmPercentage', visible: false, order: 10 },
-        { id: 'roadAngle', name: 'Уклон', unit: '°', color: '#ffc107', property: 'roadAngle', visible: false, order: 11 },
-        { id: 'freezeTemp', name: 'Заморозки', unit: '°C', color: '#343a40', property: 'freezeTemperature', visible: false, order: 12 },
-        { id: 'distance', name: 'Дистанция', unit: 'мм', color: '#7952b3', property: 'distanceToSurface', visible: false, order: 13 }
+    // Параметры сцепления и состояния дороги
+    roadConditionParameters: [
+        { id: 'grip', name: 'Коэф. сцепления', unit: '', color: '#28a745', property: 'gripCoefficient', visible: true, order: 1, group: 'roadCondition', icon: 'fa-road', description: 'Коэффициент сцепления с дорогой' },
+        { id: 'roadTemp', name: 'Темп. дороги', unit: '°C', color: '#dc3545', property: 'roadTemperature', visible: true, order: 2, group: 'roadCondition', icon: 'fa-thermometer-half', description: 'Температура дорожного покрытия' },
+        { id: 'roadAngle', name: 'Уклон', unit: '°', color: '#ffc107', property: 'roadAngle', visible: false, order: 3, group: 'roadCondition', icon: 'fa-mountain', description: 'Угол наклона дороги' },
+        { id: 'freezeTemp', name: 'Заморозки', unit: '°C', color: '#343a40', property: 'freezeTemperature', visible: false, order: 4, group: 'roadCondition', icon: 'fa-snowflake', description: 'Температура замерзания' }
+    ],
+
+    // Параметры осадков на дороге
+    precipitationLayerParameters: [
+        { id: 'water', name: 'Вода', unit: 'мм', color: '#0d6efd', property: 'waterHeight', visible: true, order: 1, group: 'precipitationLayer', icon: 'fa-water', description: 'Высота слоя воды' },
+        { id: 'ice', name: 'Лед', unit: 'мм', color: '#17a2b8', property: 'iceHeight', visible: true, order: 2, group: 'precipitationLayer', icon: 'fa-regular fa-snowflake', description: 'Высота слоя льда' },
+        { id: 'snow', name: 'Снег', unit: 'мм', color: '#6c757d', property: 'snowHeight', visible: true, order: 3, group: 'precipitationLayer', icon: 'fa-snowman', description: 'Высота слоя снега' },
+        { id: 'icePct', name: '% льда', unit: '%', color: '#6610f2', property: 'icePercentage', visible: false, order: 4, group: 'precipitationLayer', icon: 'fa-percent', description: 'Процент содержания льда' },
+        { id: 'pgmPct', name: '% ПГМ', unit: '%', color: '#e83e8c', property: 'pgmPercentage', visible: false, order: 5, group: 'precipitationLayer', icon: 'fa-flask', description: 'Процент противогололедных материалов' }
+    ],
+
+    // Технические параметры датчика
+    technicalParameters: [
+        { id: 'voltage', name: 'Напряжение', unit: 'В', color: '#6f42c1', property: 'voltagePower', visible: true, order: 1, group: 'technical', icon: 'fa-bolt', description: 'Напряжение питания' },
+        { id: 'caseTemp', name: 'Темп. корпуса', unit: '°C', color: '#20c997', property: 'caseTemperature', visible: true, order: 2, group: 'technical', icon: 'fa-thermometer-empty', description: 'Температура корпуса датчика' },
+        { id: 'shake', name: 'Вибрация', unit: '', color: '#fd7e14', property: 'shakeLevel', visible: false, order: 3, group: 'technical', icon: 'fa-wave-square', description: 'Уровень вибрации' },
+        { id: 'distance', name: 'Дистанция', unit: 'мм', color: '#7952b3', property: 'distanceToSurface', visible: false, order: 4, group: 'technical', icon: 'fa-ruler', description: 'Расстояние до поверхности' }
+    ],
+
+    // Параметры калибровки и статуса
+    calibrationParameters: [
+        { id: 'calibrationNeeded', name: 'Калибровка', unit: '', color: '#dc3545', property: 'calibrationNeeded', visible: false, order: 1, group: 'calibration', icon: 'fa-exclamation-triangle', description: 'Требуется калибровка' },
+        { id: 'gpsValid', name: 'GPS статус', unit: '', color: '#28a745', property: 'gpsValid', visible: false, order: 2, group: 'calibration', icon: 'fa-satellite', description: 'Статус GPS сигнала' }
+    ],
+
+    // Параметры позиционирования
+    positionParameters: [
+        { id: 'gpsLat', name: 'Широта', unit: '°', color: '#17a2b8', property: 'gpsLatitude', visible: false, order: 1, group: 'position', icon: 'fa-map-pin', description: 'GPS широта' },
+        { id: 'gpsLon', name: 'Долгота', unit: '°', color: '#20c997', property: 'gpsLongitude', visible: false, order: 2, group: 'position', icon: 'fa-map-pin', description: 'GPS долгота' }
     ],
 
     // Автообновление
@@ -43,7 +64,7 @@ const DSPDCharts = {
         moment.locale('ru');
 
         this.createParameterCheckboxes();
-        this.loadData(1); // по умолчанию 24ч после рефакторинга
+        this.loadData(1); // по умолчанию 24ч
 
         // Обработчик кнопок периода
         $('#dspdTimeRangeButtons .btn').off('click').on('click', (e) => {
@@ -66,9 +87,26 @@ const DSPDCharts = {
             this.renderChart();
         });
 
+        // Обработчик переключения вкладок
+        $('#dspdTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
+            const tabId = $(e.target).attr('id');
+            const tabMap = {
+                'road-condition-tab': 'roadCondition',
+                'precipitation-layer-tab': 'precipitationLayer',
+                'technical-tab': 'technical',
+                'calibration-tab': 'calibration',
+                'position-tab': 'position'
+            };
+            this.currentTab = tabMap[tabId] || 'roadCondition';
+            this.updateChartTitle();
+            this.renderChart();
+            this.updateStatistics();
+        });
+
         // Чекбоксы параметров
         $(document).on('change', '.dspd-parameter-checkbox', () => {
             this.updateVisibleParameters();
+            this.limitSelectedParameters();
             this.renderChart();
             this.updateStatistics();
         });
@@ -87,89 +125,180 @@ const DSPDCharts = {
             }
         });
 
+        // Кнопки управления для каждой группы
+        this.setupControlButtons();
+
         this.startAutoUpdate();
     },
 
+    setupControlButtons: function() {
+        const groups = [
+            { name: 'RoadCondition', id: 'roadCondition' },
+            { name: 'PrecipitationLayer', id: 'precipitationLayer' },
+            { name: 'Technical', id: 'technical' },
+            { name: 'Calibration', id: 'calibration' },
+            { name: 'Position', id: 'position' }
+        ];
+
+        groups.forEach(group => {
+            const capName = group.name;
+            
+            $(document).off('click', `#dspdSelectAll${capName}`).on('click', `#dspdSelectAll${capName}`, () => {
+                $(`#dspd${capName}Checkboxes .dspd-parameter-checkbox`).prop('checked', true);
+                this.updateVisibleParameters();
+                this.limitSelectedParameters();
+                this.renderChart();
+                this.updateStatistics();
+            });
+
+            $(document).off('click', `#dspdClearAll${capName}`).on('click', `#dspdClearAll${capName}`, () => {
+                $(`#dspd${capName}Checkboxes .dspd-parameter-checkbox`).prop('checked', false);
+                // Включаем параметры по умолчанию для этой группы
+                const defaultParams = this[`${group.id}Parameters`]
+                    .filter(p => {
+                        if (group.id === 'roadCondition') return ['grip', 'roadTemp'].includes(p.id);
+                        if (group.id === 'precipitationLayer') return ['water', 'ice', 'snow'].includes(p.id);
+                        if (group.id === 'technical') return ['voltage', 'caseTemp'].includes(p.id);
+                        return false;
+                    });
+                
+                defaultParams.forEach(p => {
+                    $(`#dspd_param_${p.id}`).prop('checked', true);
+                });
+                
+                this.updateVisibleParameters();
+                this.limitSelectedParameters();
+                this.renderChart();
+                this.updateStatistics();
+            });
+        });
+    },
+
     createParameterCheckboxes: function() {
-        const container = $('#dspdParameterCheckboxes');
+        // Создаем чекбоксы для каждой группы
+        this.createCheckboxGroup('RoadCondition', this.roadConditionParameters);
+        this.createCheckboxGroup('PrecipitationLayer', this.precipitationLayerParameters);
+        this.createCheckboxGroup('Technical', this.technicalParameters);
+        this.createCheckboxGroup('Calibration', this.calibrationParameters);
+        this.createCheckboxGroup('Position', this.positionParameters);
+    },
+
+    createCheckboxGroup: function(groupName, parameters) {
+        const container = $(`#dspd${groupName}Checkboxes`);
         if (!container.length) return;
 
         container.empty();
-
-        const sorted = [...this.availableParameters].sort((a,b) => a.order - b.order);
-
-        sorted.forEach(param => {
-            const col = $(`
-                <div class="col-md-3 col-sm-6 mb-2">
-                    <div class="form-check">
-                        <input class="form-check-input dspd-parameter-checkbox"
-                               type="checkbox"
-                               id="param_${param.id}"
-                               data-param-id="${param.id}"
-                               data-property="${param.property}"
-                               ${param.visible ? 'checked' : ''}>
-                        <label class="form-check-label small" for="param_${param.id}">
-                            <span style="display:inline-block; width:12px; height:12px; background-color:${param.color}; border-radius:2px; margin-right:4px;"></span>
-                            ${param.name} ${param.unit ? `(${param.unit})` : ''}
-                        </label>
-                    </div>
-                </div>
-            `);
-            container.append(col);
+        
+        // Сортируем и добавляем параметры
+        parameters.sort((a, b) => a.order - b.order).forEach(p => {
+            container.append(this.createCheckbox(p, groupName));
         });
 
-        const controls = $(`
-            <div class="col-12 mt-2">
-                <hr class="my-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="dspdSelectAllParams">Выбрать все</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="dspdClearAllParams">Сбросить</button>
-                    <span class="ms-auto text-muted small" id="dspdSelectedParamsCount">Выбрано: 2/4</span>
+        // Добавляем счетчик выбранных параметров
+        const countId = `dspd${groupName}SelectedCount`;
+        
+        // Добавляем кнопки управления
+        container.append(this.createControlButtons(groupName, countId));
+    },
+
+    createCheckbox: function(param, group) {
+        return $(`
+            <div class="col-md-4 col-sm-6 mb-2">
+                <div class="form-check">
+                    <input class="form-check-input dspd-parameter-checkbox"
+                           type="checkbox"
+                           id="dspd_param_${param.id}"
+                           data-param-id="${param.id}"
+                           data-group="${param.group}"
+                           data-property="${param.property}"
+                           ${param.visible ? 'checked' : ''}>
+                    <label class="form-check-label small" for="dspd_param_${param.id}" title="${param.description || ''}">
+                        <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
+                        <span style="display:inline-block; width:8px; height:8px; background-color:${param.color}; border-radius:50%; margin-right:4px;"></span>
+                        ${param.name} ${param.unit ? `(${param.unit})` : ''}
+                    </label>
                 </div>
             </div>
         `);
-        container.append(controls);
+    },
 
-        $('#dspdSelectAllParams').off('click').on('click', () => {
-            $('.dspd-parameter-checkbox').prop('checked', true);
-            this.limitSelectedParameters();
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
-        $('#dspdClearAllParams').off('click').on('click', () => {
-            $('.dspd-parameter-checkbox').prop('checked', false);
-            $('#param_grip, #param_roadTemp').prop('checked', true);
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
-        $(document).on('change', '.dspd-parameter-checkbox', () => this.limitSelectedParameters());
-        this.limitSelectedParameters();
+    createControlButtons: function(group, countId) {
+        return $(`
+            <div class="col-12 mt-2">
+                <hr class="my-2">
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="dspdSelectAll${group}">Выбрать все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="dspdClearAll${group}">Сбросить</button>
+                    <span class="ms-auto text-muted small" id="${countId}">Выбрано: <span class="selected-count">0</span>/4</span>
+                </div>
+            </div>
+        `);
     },
 
     limitSelectedParameters: function() {
-        const checked = $('.dspd-parameter-checkbox:checked');
-        const count = checked.length;
-        $('#dspdSelectedParamsCount').text(`Выбрано: ${count}/4`);
-
-        if (count >= 4) {
-            $('.dspd-parameter-checkbox:not(:checked)').prop('disabled', true);
-        } else {
-            $('.dspd-parameter-checkbox').prop('disabled', false);
-        }
-    },
-
-    updateVisibleParameters: function() {
-        this.availableParameters.forEach(p => {
-            p.visible = $(`#param_${p.id}`).is(':checked');
+        // Обновляем счетчики для каждой группы
+        const groups = ['roadCondition', 'precipitationLayer', 'technical', 'calibration', 'position'];
+        
+        groups.forEach(group => {
+            const groupParams = this[`${group}Parameters`] || [];
+            const groupCheckboxes = groupParams.map(p => $(`#dspd_param_${p.id}`));
+            const checkedCount = groupCheckboxes.filter(cb => cb.is(':checked')).length;
+            
+            const groupName = {
+                'roadCondition': 'RoadCondition',
+                'precipitationLayer': 'PrecipitationLayer',
+                'technical': 'Technical',
+                'calibration': 'Calibration',
+                'position': 'Position'
+            }[group];
+            
+            $(`#dspd${groupName}SelectedCount .selected-count`).text(checkedCount);
+            
+            // Блокируем невыбранные чекбоксы если достигнут лимит
+            if (checkedCount >= 4) {
+                groupParams.forEach(p => {
+                    if (!$(`#dspd_param_${p.id}`).is(':checked')) {
+                        $(`#dspd_param_${p.id}`).prop('disabled', true);
+                    }
+                });
+            } else {
+                groupParams.forEach(p => {
+                    $(`#dspd_param_${p.id}`).prop('disabled', false);
+                });
+            }
         });
     },
 
+    updateVisibleParameters: function() {
+        // Обновляем видимость для всех групп параметров
+        this.roadConditionParameters.forEach(p => p.visible = $(`#dspd_param_${p.id}`).is(':checked'));
+        this.precipitationLayerParameters.forEach(p => p.visible = $(`#dspd_param_${p.id}`).is(':checked'));
+        this.technicalParameters.forEach(p => p.visible = $(`#dspd_param_${p.id}`).is(':checked'));
+        this.calibrationParameters.forEach(p => p.visible = $(`#dspd_param_${p.id}`).is(':checked'));
+        this.positionParameters.forEach(p => p.visible = $(`#dspd_param_${p.id}`).is(':checked'));
+    },
+
     getSelectedParameters: function() {
-        return this.availableParameters.filter(p => p.visible);
+        const groups = {
+            'roadCondition': this.roadConditionParameters,
+            'precipitationLayer': this.precipitationLayerParameters,
+            'technical': this.technicalParameters,
+            'calibration': this.calibrationParameters,
+            'position': this.positionParameters
+        };
+        
+        return groups[this.currentTab]?.filter(p => p.visible) || [];
+    },
+
+    updateChartTitle: function() {
+        const titles = {
+            'roadCondition': 'Состояние дороги',
+            'precipitationLayer': 'Осадки на дороге',
+            'technical': 'Технические параметры',
+            'calibration': 'Калибровка и статус',
+            'position': 'Позиционирование'
+        };
+        $('#dspdChartTitle').text(`DSPD: ${titles[this.currentTab] || 'Параметры'}`);
     },
 
     startAutoUpdate: function() {
@@ -356,19 +485,45 @@ const DSPDCharts = {
         if (this.chart) this.chart.destroy();
 
         const selected = this.getSelectedParameters();
-        if (!selected.length) return;
+        if (!selected.length) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет выбранных параметров',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const datasets = [];
 
         selected.forEach((p, i) => {
-            const data = m.map(x => {
-                const v = x[p.property];
-                return v != null ? parseFloat(v) : null;
-            });
+            // Фильтруем null значения
+            const validData = m
+                .map(x => {
+                    const value = x[p.property];
+                    return {
+                        x: new Date(x.dataTimestamp),
+                        y: value != null ? parseFloat(value) : null
+                    };
+                })
+                .filter(point => point.y !== null);
+
+            if (validData.length === 0) return;
 
             const ds = {
                 label: p.name + (p.unit ? ` (${p.unit})` : ''),
-                data: data,
+                data: validData,
                 borderColor: p.color,
                 backgroundColor: this.hexToRgba(p.color, 0.1),
                 borderWidth: 2,
@@ -376,21 +531,15 @@ const DSPDCharts = {
                 pointHoverRadius: 6,
                 tension: 0.3,
                 fill: false,
-                yAxisID: `y${i === 0 ? '' : i + 1}`
+                yAxisID: i === 0 ? 'y' : `y${i + 1}`
             };
 
             if (this.currentChartType === 'scatter') {
                 ds.type = 'scatter';
-                ds.data = m.map(x => {
-                    const v = x[p.property];
-                    return v != null ? { x: new Date(x.dataTimestamp), y: parseFloat(v) } : null;
-                }).filter(Boolean);
                 ds.backgroundColor = p.color;
                 ds.borderColor = 'transparent';
                 ds.pointRadius = 5;
-            }
-
-            if (this.currentChartType === 'bar') {
+            } else if (this.currentChartType === 'bar') {
                 ds.type = 'bar';
                 ds.barPercentage = 0.8;
                 ds.categoryPercentage = 0.9;
@@ -398,6 +547,26 @@ const DSPDCharts = {
 
             datasets.push(ds);
         });
+
+        if (datasets.length === 0) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет данных для отображения',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const yAxes = {};
         selected.forEach((p, i) => {
@@ -421,17 +590,39 @@ const DSPDCharts = {
                 animation: { duration: 300 },
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                    legend: { 
+                        display: true, 
+                        position: 'top', 
+                        labels: { 
+                            usePointStyle: true, 
+                            boxWidth: 8,
+                            filter: (item) => !item.text.includes('нет данных')
+                        } 
+                    },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        callbacks: { label: ctx => `${ctx.dataset.label || ''}: ${ctx.parsed.y?.toFixed(2) ?? ''}` }
+                        callbacks: {
+                            label: (ctx) => {
+                                const dataset = ctx.dataset;
+                                const label = dataset.label || '';
+                                const value = ctx.parsed.y;
+                                if (value !== null && value !== undefined) {
+                                    return `${label}: ${value.toFixed(2)}`;
+                                }
+                                return `${label}: нет данных`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     x: {
                         type: 'time',
-                        time: { unit: cfg.unit, displayFormats: cfg.displayFormats, tooltipFormat: 'dd.MM.yyyy HH:mm' },
+                        time: { 
+                            unit: cfg.unit, 
+                            displayFormats: cfg.displayFormats, 
+                            tooltipFormat: 'dd.MM.yyyy HH:mm' 
+                        },
                         title: { display: true, text: 'Дата/время' }
                     },
                     ...yAxes
@@ -463,13 +654,15 @@ const DSPDCharts = {
 
             const min = Math.min(...vals);
             const max = Math.max(...vals);
-            const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+            const avg = vals.reduce((a,b) => a + b, 0) / vals.length;
             const cur = vals[vals.length-1];
 
             const col = $(`
                 <div class="col-md-3 col-sm-6 mb-2">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
-                        <div class="small text-muted">${p.name}</div>
+                        <div class="small text-muted">
+                            <i class="fas ${p.icon || 'fa-chart-line'} me-1"></i> ${p.name}
+                        </div>
                         <div class="d-flex justify-content-between mt-1">
                             <span class="small">тек. <strong>${cur.toFixed(2)}</strong></span>
                             <span class="small">мин <strong>${min.toFixed(2)}</strong></span>
