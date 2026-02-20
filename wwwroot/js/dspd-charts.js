@@ -125,53 +125,7 @@ const DSPDCharts = {
             }
         });
 
-        // Кнопки управления для каждой группы
-        this.setupControlButtons();
-
         this.startAutoUpdate();
-    },
-
-    setupControlButtons: function() {
-        const groups = [
-            { name: 'RoadCondition', id: 'roadCondition' },
-            { name: 'PrecipitationLayer', id: 'precipitationLayer' },
-            { name: 'Technical', id: 'technical' },
-            { name: 'Calibration', id: 'calibration' },
-            { name: 'Position', id: 'position' }
-        ];
-
-        groups.forEach(group => {
-            const capName = group.name;
-            
-            $(document).off('click', `#dspdSelectAll${capName}`).on('click', `#dspdSelectAll${capName}`, () => {
-                $(`#dspd${capName}Checkboxes .dspd-parameter-checkbox`).prop('checked', true);
-                this.updateVisibleParameters();
-                this.limitSelectedParameters();
-                this.renderChart();
-                this.updateStatistics();
-            });
-
-            $(document).off('click', `#dspdClearAll${capName}`).on('click', `#dspdClearAll${capName}`, () => {
-                $(`#dspd${capName}Checkboxes .dspd-parameter-checkbox`).prop('checked', false);
-                // Включаем параметры по умолчанию для этой группы
-                const defaultParams = this[`${group.id}Parameters`]
-                    .filter(p => {
-                        if (group.id === 'roadCondition') return ['grip', 'roadTemp'].includes(p.id);
-                        if (group.id === 'precipitationLayer') return ['water', 'ice', 'snow'].includes(p.id);
-                        if (group.id === 'technical') return ['voltage', 'caseTemp'].includes(p.id);
-                        return false;
-                    });
-                
-                defaultParams.forEach(p => {
-                    $(`#dspd_param_${p.id}`).prop('checked', true);
-                });
-                
-                this.updateVisibleParameters();
-                this.limitSelectedParameters();
-                this.renderChart();
-                this.updateStatistics();
-            });
-        });
     },
 
     createParameterCheckboxes: function() {
@@ -193,12 +147,6 @@ const DSPDCharts = {
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
             container.append(this.createCheckbox(p, groupName));
         });
-
-        // Добавляем счетчик выбранных параметров
-        const countId = `dspd${groupName}SelectedCount`;
-        
-        // Добавляем кнопки управления
-        container.append(this.createControlButtons(groupName, countId));
     },
 
     createCheckbox: function(param, group) {
@@ -222,19 +170,6 @@ const DSPDCharts = {
         `);
     },
 
-    createControlButtons: function(group, countId) {
-        return $(`
-            <div class="col-12 mt-2">
-                <hr class="my-2">
-                <div class="d-flex gap-2 align-items-center">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="dspdSelectAll${group}">Выбрать все</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="dspdClearAll${group}">Сбросить</button>
-                    <span class="ms-auto text-muted small" id="${countId}">Выбрано: <span class="selected-count">0</span>/4</span>
-                </div>
-            </div>
-        `);
-    },
-
     limitSelectedParameters: function() {
         // Обновляем счетчики для каждой группы
         const groups = ['roadCondition', 'precipitationLayer', 'technical', 'calibration', 'position'];
@@ -251,8 +186,6 @@ const DSPDCharts = {
                 'calibration': 'Calibration',
                 'position': 'Position'
             }[group];
-            
-            $(`#dspd${groupName}SelectedCount .selected-count`).text(checkedCount);
             
             // Блокируем невыбранные чекбоксы если достигнут лимит
             if (checkedCount >= 4) {

@@ -36,7 +36,8 @@
                 </div>
             </div>
         </div>
- <!-- Выбор периода + тип графика -->
+        
+        <!-- Выбор периода + тип графика -->
         <div class="row mb-3">
             <div class="col-md-12">
                 <div class="d-flex align-items-center justify-content-between">
@@ -68,16 +69,63 @@
             </div>
         </div>
 
-       
         <!-- Параметры по вкладкам -->
         <div class="row mb-3">
             <div class="col-md-12">
                 <div class="tab-content" id="mueksTabsContent">
-                    <div class="tab-pane fade show active" id="voltage"><div class="card"><div class="card-header bg-light py-2"><h6 class="mb-0">Параметры напряжения (В)</h6></div><div class="card-body py-2"><div class="row" id="mueksVoltageCheckboxes"></div></div></div></div>
-                    <div class="tab-pane fade" id="current"><div class="card"><div class="card-header bg-light py-2"><h6 class="mb-0">Параметры тока (А)</h6></div><div class="card-body py-2"><div class="row" id="mueksCurrentCheckboxes"></div></div></div></div>
-                    <div class="tab-pane fade" id="energy"><div class="card"><div class="card-header bg-light py-2"><h6 class="mb-0">Параметры энергии</h6></div><div class="card-body py-2"><div class="row" id="mueksEnergyCheckboxes"></div></div></div></div>
-                    <div class="tab-pane fade" id="status"><div class="card"><div class="card-header bg-light py-2"><h6 class="mb-0">Статусы и температура</h6></div><div class="card-body py-2"><div class="row" id="mueksStatusCheckboxes"></div></div></div></div>
-                    <div class="tab-pane fade" id="tds"><div class="card"><div class="card-header bg-light py-2"><h6 class="mb-0">TDS параметры (текстовые)</h6></div><div class="card-body py-2"><div class="alert alert-info"><i class="fas fa-info-circle"></i> Текстовые параметры TDS отображаются в таблице ниже</div><div id="mueksTdsTable" class="table-responsive bsp-chart-mueks-tds-table"></div></div></div></div>
+                    <div class="tab-pane fade show active" id="voltage">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="mb-0">Параметры напряжения (В)</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="mueksVoltageCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="current">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="mb-0">Параметры тока (А)</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="mueksCurrentCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="energy">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="mb-0">Параметры энергии</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="mueksEnergyCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="status">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="mb-0">Статусы и температура</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="mueksStatusCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tds">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <h6 class="mb-0">TDS параметры (текстовые)</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Текстовые параметры TDS отображаются в таблице ниже
+                                </div>
+                                <div id="mueksTdsTable" class="table-responsive bsp-chart-mueks-tds-table"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

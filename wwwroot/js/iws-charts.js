@@ -141,50 +141,7 @@ const IWSCharts = {
             }
         });
 
-        // Кнопки "выбрать все / сбросить" для каждой вкладки
-        this.setupControlButtons();
-
         this.startAutoUpdate();
-    },
-
-    setupControlButtons: function() {
-        const groups = [
-            { name: 'Weather', id: 'weather' },
-            { name: 'Wind', id: 'wind' },
-            { name: 'Precipitation', id: 'precipitation' },
-            { name: 'Pressure', id: 'pressure' },
-            { name: 'Position', id: 'position' },
-            { name: 'Technical', id: 'technical' }
-        ];
-
-        groups.forEach(group => {
-            const capName = group.name;
-            const groupId = group.id;
-            
-            $(document).off('click', `#iwsSelectAll${capName}`).on('click', `#iwsSelectAll${capName}`, () => {
-                $(`#iws${capName}Checkboxes .iws-parameter-checkbox`).prop('checked', true);
-                this.updateVisibleParameters();
-                this.renderChart();
-                this.updateStatistics();
-            });
-
-            $(document).off('click', `#iwsClearAll${capName}`).on('click', `#iwsClearAll${capName}`, () => {
-                $(`#iws${capName}Checkboxes .iws-parameter-checkbox`).prop('checked', false);
-                // Включаем параметры по умолчанию для этой группы
-                const defaultParams = this[`${groupId}Parameters`]
-                    .filter(p => ['envTemp', 'humidity', 'dewPoint', 'windSpeed', 'windDirection', 
-                                 'precipIntensity', 'precipQuantity', 'pressureHpa', 'pressureQNH', 
-                                 'pressureMmHg', 'altitude', 'supplyVoltage'].includes(p.id));
-                
-                defaultParams.forEach(p => {
-                    $(`#iws_param_${p.id}`).prop('checked', true);
-                });
-                
-                this.updateVisibleParameters();
-                this.renderChart();
-                this.updateStatistics();
-            });
-        });
     },
 
     createParameterCheckboxes: function() {
@@ -207,9 +164,6 @@ const IWSCharts = {
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
             container.append(this.createCheckbox(p, groupName));
         });
-
-        // Добавляем кнопки управления
-        container.append(this.createControlButtons(groupName));
     },
 
     createCheckbox: function(param, group) {
@@ -229,19 +183,6 @@ const IWSCharts = {
                         <span style="display:inline-block;width:8px;height:8px;background-color:${param.color};border-radius:50%;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
-                </div>
-            </div>
-        `);
-    },
-
-    createControlButtons: function(group) {
-        const cap = group.charAt(0).toUpperCase() + group.slice(1);
-        return $(`
-            <div class="col-12 mt-2">
-                <hr class="my-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-success" id="iwsSelectAll${cap}">Выбрать все</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="iwsClearAll${cap}">Сбросить</button>
                 </div>
             </div>
         `);

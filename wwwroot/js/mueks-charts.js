@@ -108,7 +108,6 @@ const MUEKSCharts = {
             }
         });
 
-        this.addGroupSelectionHandlers();
         this.startAutoUpdate();
     },
 
@@ -129,8 +128,6 @@ const MUEKSCharts = {
         params.sort((a,b)=>a.order-b.order).forEach(p => {
             container.append(this.createCheckboxColumn(p, groupName));
         });
-
-        container.append(this.createControlButtons(groupName));
     },
 
     createCheckboxColumn: function(param, group) {
@@ -152,42 +149,6 @@ const MUEKSCharts = {
                 </div>
             </div>
         `);
-    },
-
-    createControlButtons: function(group) {
-        return $(`
-            <div class="col-12 mt-2">
-                <hr class="my-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-danger mueks-select-all" data-group="${group}">Выбрать все</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mueks-clear-all" data-group="${group}">Сбросить</button>
-                </div>
-            </div>
-        `);
-    },
-
-    addGroupSelectionHandlers: function() {
-        $(document).off('click', '.mueks-select-all').on('click', '.mueks-select-all', (e) => {
-            const g = $(e.currentTarget).data('group');
-            const sel = `#mueks${g.charAt(0).toUpperCase()+g.slice(1)}Checkboxes .mueks-parameter-checkbox`;
-            $(sel).prop('checked', true);
-            this.updateVisibleParameters();
-            if (this.currentTab !== 'tds') {
-                this.renderChart();
-                this.updateStatistics();
-            }
-        });
-
-        $(document).off('click', '.mueks-clear-all').on('click', '.mueks-clear-all', (e) => {
-            const g = $(e.currentTarget).data('group');
-            const sel = `#mueks${g.charAt(0).toUpperCase()+g.slice(1)}Checkboxes .mueks-parameter-checkbox`;
-            $(sel).prop('checked', false);
-            this.updateVisibleParameters();
-            if (this.currentTab !== 'tds') {
-                this.renderChart();
-                this.updateStatistics();
-            }
-        });
     },
 
     updateVisibleParameters: function() {

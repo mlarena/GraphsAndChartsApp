@@ -85,37 +85,6 @@ const DUSTCharts = {
             }
         });
 
-        // Кнопки "все / сброс" для вкладок
-        $(document).on('click', '#dustSelectAllPm', () => {
-            $('#dustPmCheckboxes .dust-parameter-checkbox').prop('checked', true);
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
-        $(document).on('click', '#dustClearAllPm', () => {
-            $('#dustPmCheckboxes .dust-parameter-checkbox').prop('checked', false);
-            $('#dust_param_pm10act, #dust_param_pm25act, #dust_param_pm1act').prop('checked', true);
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
-        $(document).on('click', '#dustSelectAllTechnical', () => {
-            $('#dustTechnicalCheckboxes .dust-parameter-checkbox').prop('checked', true);
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
-        $(document).on('click', '#dustClearAllTechnical', () => {
-            $('#dustTechnicalCheckboxes .dust-parameter-checkbox').prop('checked', false);
-            $('#dust_param_flow, #dust_param_temp, #dust_param_humidity, #dust_param_voltage').prop('checked', true);
-            this.updateVisibleParameters();
-            this.renderChart();
-            this.updateStatistics();
-        });
-
         this.startAutoUpdate();
     },
 
@@ -124,14 +93,12 @@ const DUSTCharts = {
         if (pm.length) {
             pm.empty();
             this.pmParameters.sort((a,b)=>a.order-b.order).forEach(p => pm.append(this.createCheckbox(p, 'pm')));
-            pm.append(this.createControlButtons('pm'));
         }
 
         const tech = $('#dustTechnicalCheckboxes');
         if (tech.length) {
             tech.empty();
             this.technicalParameters.sort((a,b)=>a.order-b.order).forEach(p => tech.append(this.createCheckbox(p, 'technical')));
-            tech.append(this.createControlButtons('technical'));
         }
     },
 
@@ -150,19 +117,6 @@ const DUSTCharts = {
                         <span style="display:inline-block;width:12px;height:12px;background-color:${param.color};border-radius:2px;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
-                </div>
-            </div>
-        `);
-    },
-
-    createControlButtons: function(group) {
-        const cap = group.charAt(0).toUpperCase() + group.slice(1);
-        return $(`
-            <div class="col-12 mt-2">
-                <hr class="my-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-warning" id="dustSelectAll${cap}">Выбрать все</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="dustClearAll${cap}">Сбросить</button>
                 </div>
             </div>
         `);
@@ -381,7 +335,7 @@ const DUSTCharts = {
                 pointHoverRadius: 6,
                 tension: 0.3,
                 fill: false,
-                yAxisID: `y${i === 0 ? '' : i + 1}`
+                yAxisID: i === 0 ? 'y' : `y${i + 1}`
             };
 
             if (this.currentChartType === 'scatter') {
