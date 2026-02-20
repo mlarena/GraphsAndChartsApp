@@ -1,0 +1,169 @@
+@model GraphsAndChartsApp.ViewModels.SensorViewModel
+
+@{
+    var sensorId = Model.Id;
+}
+
+<div class="card bsp-chart-sensor-card" id="dustContainer" data-sensor-id="@sensorId">
+    <div class="card-header bg-warning text-dark">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-wind"></i> Датчик концентрации пыли (DUST)
+            </h5>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-barcode"></i> @Model.SerialNumber
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Компактная информация -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                    <div><i class="fas fa-map-marker-alt text-warning"></i> <span class="fw-bold">@Model.EndPointsName</span></div>
+                    <div><i class="fas fa-building text-warning"></i> <span>@Model.MonitoringPostName</span></div>
+                    <div><i class="fas fa-clock text-warning"></i> <span id="dustLastUpdateTime">Загрузка...</span></div>
+                    <div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" id="dustAutoUpdateControl">
+                        <div class="form-check form-switch d-inline-block m-0">
+                            <input class="form-check-input bsp-chart-form-check-input" type="checkbox" id="dustAutoUpdateToggle" role="switch" checked>
+                            <label class="form-check-label small fw-normal ms-1" for="dustAutoUpdateToggle">
+                                <i class="fas fa-sync-alt fa-xs"></i> 30с
+                            </label>
+                        </div>
+                        <span id="dustCountdownTimer" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладки PM / Technical -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs bsp-chart-nav-tabs" id="dustTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link active bsp-chart-dust-tab" id="pm-tab" data-bs-toggle="tab" data-bs-target="#pm" type="button" role="tab">
+                            <i class="fas fa-chart-line"></i> Концентрация PM
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-dust-tab" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button" role="tab">
+                            <i class="fas fa-cogs"></i> Технические параметры
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Выбор периода + тип графика -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dust", OutlineColor = "warning", ActiveDays = 1 })
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">Тип графика:</span>
+                        <select id="dustChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="line" selected>Линейный</option>
+                            <option value="scatter">Точечный</option>
+                            <option value="bar">Столбчатый</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель параметров (меняется по вкладкам) -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="tab-content" id="dustTabsContent">
+                    <div class="tab-pane fade show active" id="pm" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-chart-line text-warning me-2"></i>
+                                    <h6 class="mb-0">Параметры концентрации частиц</h6>
+                                    <span class="ms-auto text-muted small">(мг/м³)</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dustPmCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="technical" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cogs text-warning me-2"></i>
+                                    <h6 class="mb-0">Технические параметры</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="dustTechnicalCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Диапазон дат и ползунок -->
+        @await Html.PartialAsync("_DateRangeSectionPartial", new { Prefix = "dust", Color = "warning" })
+
+        <!-- График -->
+        <div id="dustChartsContainer">
+            <div class="card">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-mixed text-warning"></i>
+                        <span id="dustChartTitle">Концентрация частиц PM</span>
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small me-2">Шкала:</span>
+                        <span id="dustTimeScaleLabel" class="badge bg-secondary">авто</span>
+                    </div>
+                </div>
+                <div class="card-body p-2">
+                    <canvas id="dustChart" class="bsp-chart-canvas" style="height: 500px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0"><i class="fas fa-info-circle text-warning"></i> Статистика</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row" id="dustStatisticsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div id="dustChartLoadingIndicator" class="text-center my-2 bsp-chart-loading-indicator" style="display: none;">
+    <div class="spinner-border spinner-border-sm text-warning" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <span class="ms-2 text-muted small">Загрузка данных DUST...</span>
+</div>
+
+<script>
+    $(document).ready(function() {
+        if (typeof DUSTCharts !== 'undefined') {
+            if (DUSTCharts.cleanup) DUSTCharts.cleanup();
+            DUSTCharts.init(@sensorId);
+            $(document).trigger('sensorChanged');
+        } else {
+            console.error('DUSTCharts не загружен!');
+        }
+    });
+</script>

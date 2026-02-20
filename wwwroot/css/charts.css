@@ -1,0 +1,151 @@
+/* charts.css - стили для графиков и диаграмм сенсоров */
+/* Префикс: bsp-chart- */
+
+/* Общие стили для карточек сенсоров */
+.bsp-chart-sensor-card {
+    margin-bottom: 1rem;
+}
+
+/* Стили для ползунка noUiSlider */
+.bsp-chart-normal-slider .noUi-horizontal {
+    height: 6px;
+    background: #dee2e6;
+    border: none;
+    border-radius: 3px;
+    box-shadow: none;
+}
+
+.bsp-chart-normal-slider .noUi-horizontal .noUi-handle {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #0d6efd;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+    right: -9px;
+    top: -7px;
+    cursor: pointer;
+}
+
+.bsp-chart-normal-slider .noUi-horizontal .noUi-handle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(13, 110, 253, 0.3);
+}
+
+.bsp-chart-normal-slider .noUi-horizontal .noUi-handle:before,
+.bsp-chart-normal-slider .noUi-horizontal .noUi-handle:after {
+    display: none;
+}
+
+.bsp-chart-normal-slider .noUi-connect {
+    background: #0d6efd;
+    height: 6px;
+    border-radius: 3px;
+}
+
+.bsp-chart-normal-slider.bsp-chart-disabled .noUi-handle,
+.bsp-chart-normal-slider.bsp-chart-disabled .noUi-connect {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bsp-chart-normal-slider.bsp-chart-disabled .noUi-handle {
+    pointer-events: none;
+}
+
+.bsp-chart-normal-slider,
+.bsp-chart-normal-slider * {
+    transition: opacity 0.2s ease;
+}
+
+/* Стили для canvas */
+.bsp-chart-canvas {
+    transition: opacity 0.2s ease;
+}
+
+/* Стили для секции диапазона дат */
+.bsp-chart-date-range-section {
+    transition: opacity 0.2s ease;
+}
+
+/* Стили для чек-бокса автообновления */
+.bsp-chart-form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Стили для табов (общие) */
+.bsp-chart-nav-tabs .bsp-chart-nav-link {
+    color: #6c757d;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.bsp-chart-nav-tabs .bsp-chart-nav-link i {
+    margin-right: 0.3rem;
+}
+
+/* Специфичные стили для табов DOV */
+.bsp-chart-nav-tabs .bsp-chart-nav-link.bsp-chart-active.bsp-chart-dov-tab {
+    color: #0d6efd;
+    font-weight: 500;
+    border-bottom: 2px solid #0d6efd;
+}
+
+/* Специфичные стили для табов DSPD */
+.bsp-chart-nav-tabs .bsp-chart-nav-link.bsp-chart-active.bsp-chart-dspd-tab {
+    color: #28a745;
+    font-weight: 500;
+    border-bottom: 2px solid #28a745;
+}
+
+/* Специфичные стили для табов DUST */
+.bsp-chart-nav-tabs .bsp-chart-nav-link.bsp-chart-active.bsp-chart-dust-tab {
+    color: #ffc107;
+    font-weight: 500;
+    border-bottom: 2px solid #ffc107;
+}
+
+/* Специфичные стили для табов IWS */
+.bsp-chart-nav-tabs .bsp-chart-nav-link.bsp-chart-active.bsp-chart-iws-tab {
+    color: #28a745;
+    font-weight: 500;
+    border-bottom: 2px solid #28a745;
+}
+
+/* Специфичные стили для табов MUEKS */
+.bsp-chart-nav-tabs .bsp-chart-nav-link.bsp-chart-active.bsp-chart-mueks-tab {
+    color: #dc3545;
+    font-weight: 500;
+    border-bottom: 2px solid #dc3545;
+}
+
+/* Стили для таблицы MUEKS TDS */
+.bsp-chart-mueks-tds-table table {
+    font-size: 0.85rem;
+}
+
+.bsp-chart-mueks-tds-table th {
+    background-color: #f8f9fa;
+}
+
+/* Стили для индикаторов загрузки */
+.bsp-chart-loading-indicator {
+    display: none;
+}
+
+/* Стили для автоматического обновления */
+.bsp-chart-auto-update-control .bsp-chart-form-check-input {
+    cursor: pointer;
+    width: 2.5em;
+    height: 1.25em;
+}
+
+.bsp-chart-auto-update-control .bsp-chart-form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.bsp-chart-countdown-timer {
+    font-size: 0.7rem;
+}

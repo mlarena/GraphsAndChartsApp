@@ -1,0 +1,15 @@
+dotnet publish "C:\temp\GraphsAndChartsApp\GraphsAndChartsApp.csproj" -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o "C:\temp\GraphsAndChartsApp\release\linux-x64\"
+
+
+scp -P 58222 "C:\temp\GraphsAndChartsApp\release\linux-x64\GraphsAndChartsApp.zip" usermeteo@192.168.192.137:/opt/burstroy/tmp 
+toor
+scp "C:\temp\GraphsAndChartsApp\release\linux-x64\GraphsAndChartsApp.zip" debusr@192.168.3.74:/opt/burstroy/tmp
+@Ze2vgeFyYVC
+
+sudo systemctl start burstroy-graph.service
+sudo systemctl stop burstroy-graph.service
+sudo systemctl restart burstroy-graph.service
+sudo systemctl status burstroy-graph.service
+sudo journalctl -u burstroy-graph.service -f
+sudo systemctl enable burstroy-graph.service
+sudo systemctl disable burstroy-graph.service

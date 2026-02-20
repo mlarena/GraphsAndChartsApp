@@ -1,0 +1,14 @@
+@model dynamic
+@{
+    var prefix = Model?.Prefix ?? "";
+    var outlineColor = Model?.OutlineColor ?? "primary";
+    var activeDays = Model?.ActiveDays ?? 1;
+}
+<span class="text-muted me-2"><i class="fas fa-calendar-alt"></i></span>
+<div class="btn-group" role="group" id="@(prefix)TimeRangeButtons">
+    <button type="button" class="btn btn-sm btn-outline-@outlineColor @(activeDays == 1 ? "active" : "")" data-days="1">24ч</button>
+    <button type="button" class="btn btn-sm btn-outline-@outlineColor @(activeDays == 3 ? "active" : "")" data-days="3">3д</button>
+    <button type="button" class="btn btn-sm btn-outline-@outlineColor @(activeDays == 7 ? "active" : "")" data-days="7">7д</button>
+    <button type="button" class="btn btn-sm btn-outline-@outlineColor @(activeDays == 14 ? "active" : "")" data-days="14">14д</button>
+    <button type="button" class="btn btn-sm btn-outline-@outlineColor @(activeDays == 30 ? "active" : "")" data-days="30">30д</button>
+</div>

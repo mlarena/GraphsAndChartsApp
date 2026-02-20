@@ -1,0 +1,87 @@
+@model GraphsAndChartsApp.ViewModels.SensorSelectionViewModel
+
+@{
+    ViewData["Title"] = "Графики и диаграммы";
+}
+
+<!-- <div class="container mt-4"> -->
+<div>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Выбор сенсора</h5>
+        </div>
+        <div class="card-body">
+            <form id="sensorForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="monitoringPostSelect">Пост мониторинга</label>
+                            <select id="monitoringPostSelect" class="form-control" 
+                                    asp-for="SelectedMonitoringPostId" 
+                                    asp-items="Model.MonitoringPosts">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="sensorSelect">Сенсор</label>
+                            <select id="sensorSelect" class="form-control" 
+                                    asp-for="SelectedSensorId" 
+                                    asp-items="Model.Sensors" disabled>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="sensorDataContainer" class="mt-4">
+        <!-- Здесь будут отображаться данные выбранного сенсора -->
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Каскадные списки
+            $('#monitoringPostSelect').change(function () {
+                var postId = $(this).val();
+                
+                if (postId) {
+                    $('#sensorSelect').prop('disabled', false);
+                    
+                    $.getJSON('/GraphsAndCharts/GetSensorsByPost', { monitoringPostId: postId }, function (data) {
+                        $('#sensorSelect').empty();
+                        $.each(data, function (index, item) {
+                            $('#sensorSelect').append($('<option>', {
+                                value: item.value,
+                                text: item.text
+                            }));
+                        });
+                    });
+                } else {
+                    $('#sensorSelect').prop('disabled', true).empty();
+                    $('#sensorSelect').append($('<option>', {
+                        value: "",
+                        text: "Сначала выберите пост мониторинга"
+                    }));
+                    $('#sensorDataContainer').empty();
+                }
+            });
+
+            // Загрузка данных сенсора
+            $('#sensorSelect').change(function () {
+                var sensorId = $(this).val();
+                
+                if (sensorId) {
+                    $.get('/GraphsAndCharts/GetSensorData', { sensorId: sensorId }, function (data) {
+                        $('#sensorDataContainer').html(data);
+                    });
+                } else {
+                    $('#sensorDataContainer').empty();
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,250 @@
+@model GraphsAndChartsApp.ViewModels.SensorViewModel
+
+@{
+    var sensorId = Model.Id;
+}
+
+<div class="card bsp-chart-sensor-card" id="iwsContainer" data-sensor-id="@sensorId">
+    <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-cloud-sun"></i> Метеостанция (IWS)
+            </h5>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-barcode"></i> @Model.SerialNumber
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Информация о сенсоре -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                    <div><i class="fas fa-map-marker-alt text-success"></i> <span class="fw-bold">@Model.EndPointsName</span></div>
+                    <div><i class="fas fa-building text-success"></i> <span>@Model.MonitoringPostName</span></div>
+                    <div><i class="fas fa-clock text-success"></i> <span id="iwsLastUpdateTime">Загрузка...</span></div>
+                    <div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" id="iwsAutoUpdateControl">
+                        <div class="form-check form-switch d-inline-block m-0">
+                            <input class="form-check-input bsp-chart-form-check-input" type="checkbox" id="iwsAutoUpdateToggle" role="switch" checked>
+                            <label class="form-check-label small fw-normal ms-1" for="iwsAutoUpdateToggle">
+                                <i class="fas fa-sync-alt fa-xs"></i> 30с
+                            </label>
+                        </div>
+                        <span id="iwsCountdownTimer" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладки -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <ul class="nav nav-tabs bsp-chart-nav-tabs" id="iwsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link active bsp-chart-iws-tab" id="weather-tab" data-bs-toggle="tab" data-bs-target="#weather" type="button" role="tab">
+                            <i class="fas fa-temperature-high"></i> Погода
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="wind-tab" data-bs-toggle="tab" data-bs-target="#wind" type="button" role="tab">
+                            <i class="fas fa-wind"></i> Ветер
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="precipitation-tab" data-bs-toggle="tab" data-bs-target="#precipitation" type="button" role="tab">
+                            <i class="fas fa-cloud-rain"></i> Осадки
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="pressure-tab" data-bs-toggle="tab" data-bs-target="#pressure" type="button" role="tab">
+                            <i class="fas fa-thermometer-half"></i> Давление
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="position-tab" data-bs-toggle="tab" data-bs-target="#position" type="button" role="tab">
+                            <i class="fas fa-map-pin"></i> Позиция
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button" role="tab">
+                            <i class="fas fa-cogs"></i> Технические
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Выбор периода + тип графика -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "iws", OutlineColor = "success", ActiveDays = 1 })
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">Тип графика:</span>
+                        <select id="iwsChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="line" selected>Линейный</option>
+                            <option value="scatter">Точечный</option>
+                            <option value="bar">Столбчатый</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Параметры по вкладкам -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="tab-content" id="iwsTabsContent">
+                    <!-- Погода -->
+                    <div class="tab-pane fade show active" id="weather" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-temperature-high text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры погоды</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsWeatherCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ветер -->
+                    <div class="tab-pane fade" id="wind" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-wind text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры ветра</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsWindCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Осадки -->
+                    <div class="tab-pane fade" id="precipitation" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cloud-rain text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры осадков</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsPrecipitationCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Давление -->
+                    <div class="tab-pane fade" id="pressure" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-thermometer-half text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры давления</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsPressureCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Позиция -->
+                    <div class="tab-pane fade" id="position" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-map-pin text-success me-2"></i>
+                                    <h6 class="mb-0">Параметры позиционирования</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsPositionCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Технические -->
+                    <div class="tab-pane fade" id="technical" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header bg-light py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-cogs text-success me-2"></i>
+                                    <h6 class="mb-0">Технические параметры</h6>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row" id="iwsTechnicalCheckboxes"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Диапазон дат -->
+        @await Html.PartialAsync("_DateRangeSectionPartial", new { Prefix = "iws", Color = "success" })
+
+        <!-- График -->
+        <div id="iwsChartsContainer">
+            <div class="card">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-line text-success"></i> 
+                        <span id="iwsChartTitle">Параметры погоды</span>
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small me-2">Шкала:</span>
+                        <span id="iwsTimeScaleLabel" class="badge bg-secondary">авто</span>
+                    </div>
+                </div>
+                <div class="card-body p-2">
+                    <canvas id="iwsChart" class="bsp-chart-canvas" style="height: 500px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0"><i class="fas fa-info-circle text-success"></i> Статистика</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row" id="iwsStatisticsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div id="iwsChartLoadingIndicator" class="text-center my-2 bsp-chart-loading-indicator" style="display: none;">
+    <div class="spinner-border spinner-border-sm text-success" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <span class="ms-2 text-muted small">Загрузка данных IWS...</span>
+</div>
+
+<script>
+    $(document).ready(function() {
+        if (typeof IWSCharts !== 'undefined') {
+            if (IWSCharts.cleanup) IWSCharts.cleanup();
+            IWSCharts.init(@sensorId);
+            $(document).trigger('sensorChanged');
+        } else {
+            console.error('IWSCharts не загружен!');
+        }
+    });
+</script>

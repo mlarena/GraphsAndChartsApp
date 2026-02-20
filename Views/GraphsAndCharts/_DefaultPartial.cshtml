@@ -1,0 +1,16 @@
+@model GraphsAndChartsApp.ViewModels.SensorViewModel
+
+<div class="card bsp-chart-sensor-card">
+    <div class="card-header bg-secondary text-white">
+        <h5>Сенсор (@Model.SensorTypeName)</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Серийный номер:</strong> @Model.SerialNumber</p>
+        <p><strong>Точка измерения:</strong> @Model.EndPointsName</p>
+        <p><strong>Пост мониторинга:</strong> @Model.MonitoringPostName</p>
+        
+        <div class="alert alert-info">
+            Конфигурация графиков для данного типа сенсора не определена.
+        </div>
+    </div>
+</div>

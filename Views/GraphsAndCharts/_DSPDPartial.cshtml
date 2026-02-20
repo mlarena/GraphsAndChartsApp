@@ -1,0 +1,147 @@
+@model GraphsAndChartsApp.ViewModels.SensorViewModel
+
+@{
+    var sensorId = Model.Id;
+}
+
+<div class="card bsp-chart-sensor-card" id="dspdContainer" data-sensor-id="@sensorId">
+    <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-road"></i> Датчик состояния дорожного полотна (DSPD)
+            </h5>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-barcode"></i> @Model.SerialNumber
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Компактная информация о сенсоре -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                    <div>
+                        <i class="fas fa-map-marker-alt text-success"></i>
+                        <span class="fw-bold">@Model.EndPointsName</span>
+                    </div>
+                    <div>
+                        <i class="fas fa-building text-success"></i>
+                        <span>@Model.MonitoringPostName</span>
+                    </div>
+                    <div>
+                        <i class="fas fa-clock text-success"></i>
+                        <span id="dspdLastUpdateTime">Загрузка...</span>
+                    </div>
+                    <!-- АВТООБНОВЛЕНИЕ -->
+                    <div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" id="dspdAutoUpdateControl">
+                        <div class="form-check form-switch d-inline-block m-0">
+                            <input class="form-check-input bsp-chart-form-check-input" type="checkbox" id="dspdAutoUpdateToggle"
+                                   role="switch" checked>
+                            <label class="form-check-label small fw-normal ms-1" for="dspdAutoUpdateToggle">
+                                <i class="fas fa-sync-alt fa-xs"></i> 30с
+                            </label>
+                        </div>
+                        <span id="dspdCountdownTimer" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Выбор периода -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="d-flex align-items-center justify-content-end">
+                    @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dspd", OutlineColor = "success", ActiveDays = 1 })
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель выбора параметров -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-line text-success me-2"></i>
+                            <h6 class="mb-0">Параметры для отображения</h6>
+                            <span class="ms-auto text-muted small">(выберите до 4 параметров)</span>
+                        </div>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row" id="dspdParameterCheckboxes">
+                            <!-- Чекбоксы будут добавлены через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Диапазон дат и ползунок -->
+        @await Html.PartialAsync("_DateRangeSectionPartial", new { Prefix = "dspd", Color = "success" })
+
+        <!-- Контейнер для графика -->
+        <div id="dspdChartsContainer">
+            <div class="card">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-mixed text-success"></i>
+                        <span id="dspdChartTitle">Параметры DSPD</span>
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small me-2">Тип графика:</span>
+                        <select id="dspdChartTypeSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="line" selected>Линейный</option>
+                            <option value="scatter">Точечный</option>
+                            <option value="bar">Столбчатый</option>
+                        </select>
+                        <span class="text-muted small ms-3 me-2">Шкала:</span>
+                        <span id="dspdTimeScaleLabel" class="badge bg-secondary">авто</span>
+                    </div>
+                </div>
+                <div class="card-body p-2">
+                    <canvas id="dspdChart" class="bsp-chart-canvas" style="height: 500px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <h6 class="mb-0"><i class="fas fa-info-circle text-success"></i> Статистика по выбранным параметрам</h6>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row" id="dspdStatisticsContainer">
+                            <!-- Статистика будет добавлена через JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Индикатор загрузки -->
+<div id="dspdChartLoadingIndicator" class="text-center my-2 bsp-chart-loading-indicator" style="display: none;">
+    <div class="spinner-border spinner-border-sm text-success" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+    <span class="ms-2 text-muted small">Загрузка данных DSPD...</span>
+</div>
+
+<!-- ИНИЦИАЛИЗАЦИЯ -->
+<script>
+    $(document).ready(function() {
+        if (typeof DSPDCharts !== 'undefined') {
+            if (DSPDCharts.cleanup) {
+                DSPDCharts.cleanup();
+            }
+            DSPDCharts.init(@sensorId);
+            $(document).trigger('sensorChanged');
+        } else {
+            console.error('DSPDCharts не загружен!');
+        }
+    });
+</script>
