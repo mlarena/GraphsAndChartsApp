@@ -54,7 +54,7 @@ const MUEKSCharts = {
         moment.locale('ru');
 
         this.createAllCheckboxes();
-        this.loadData(7);
+        this.loadData(1);
 
         $('#mueksTimeRangeButtons .btn').off('click').on('click', (e) => {
             const btn = $(e.currentTarget);

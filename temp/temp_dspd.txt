@@ -1,0 +1,36 @@
+// Параметры сцепления и состояния дороги
+roadConditionParameters: [
+    { id: 'grip', name: 'Коэф. сцепления', unit: '', color: '#28a745', property: 'gripCoefficient', visible: true, order: 1, group: 'roadCondition', icon: 'fa-road', description: 'Коэффициент сцепления с дорогой' },
+    { id: 'roadTemp', name: 'Темп. дороги', unit: '°C', color: '#dc3545', property: 'roadTemperature', visible: true, order: 2, group: 'roadCondition', icon: 'fa-thermometer-half', description: 'Температура дорожного покрытия' },
+    { id: 'roadAngle', name: 'Уклон', unit: '°', color: '#ffc107', property: 'roadAngle', visible: false, order: 3, group: 'roadCondition', icon: 'fa-mountain', description: 'Угол наклона дороги' },
+    { id: 'freezeTemp', name: 'Заморозки', unit: '°C', color: '#343a40', property: 'freezeTemperature', visible: false, order: 4, group: 'roadCondition', icon: 'fa-snowflake', description: 'Температура замерзания' }
+],
+
+// Параметры осадков на дороге
+precipitationLayerParameters: [
+    { id: 'water', name: 'Вода', unit: 'мм', color: '#0d6efd', property: 'waterHeight', visible: true, order: 1, group: 'precipitationLayer', icon: 'fa-water', description: 'Высота слоя воды' },
+    { id: 'ice', name: 'Лед', unit: 'мм', color: '#17a2b8', property: 'iceHeight', visible: true, order: 2, group: 'precipitationLayer', icon: 'fa-regular fa-snowflake', description: 'Высота слоя льда' },
+    { id: 'snow', name: 'Снег', unit: 'мм', color: '#6c757d', property: 'snowHeight', visible: true, order: 3, group: 'precipitationLayer', icon: 'fa-snowman', description: 'Высота слоя снега' },
+    { id: 'icePct', name: '% льда', unit: '%', color: '#6610f2', property: 'icePercentage', visible: false, order: 4, group: 'precipitationLayer', icon: 'fa-percent', description: 'Процент содержания льда' },
+    { id: 'pgmPct', name: '% ПГМ', unit: '%', color: '#e83e8c', property: 'pgmPercentage', visible: false, order: 5, group: 'precipitationLayer', icon: 'fa-flask', description: 'Процент противогололедных материалов' }
+],
+
+// Технические параметры датчика
+technicalParameters: [
+    { id: 'voltage', name: 'Напряжение', unit: 'В', color: '#6f42c1', property: 'voltagePower', visible: true, order: 1, group: 'technical', icon: 'fa-bolt', description: 'Напряжение питания' },
+    { id: 'caseTemp', name: 'Темп. корпуса', unit: '°C', color: '#20c997', property: 'caseTemperature', visible: true, order: 2, group: 'technical', icon: 'fa-thermometer-empty', description: 'Температура корпуса датчика' },
+    { id: 'shake', name: 'Вибрация', unit: '', color: '#fd7e14', property: 'shakeLevel', visible: false, order: 3, group: 'technical', icon: 'fa-wave-square', description: 'Уровень вибрации' },
+    { id: 'distance', name: 'Дистанция', unit: 'мм', color: '#7952b3', property: 'distanceToSurface', visible: false, order: 4, group: 'technical', icon: 'fa-ruler', description: 'Расстояние до поверхности' }
+],
+
+// Параметры калибровки и статуса
+calibrationParameters: [
+    { id: 'calibrationNeeded', name: 'Калибровка', unit: '', color: '#dc3545', property: 'calibrationNeeded', visible: false, order: 1, group: 'calibration', icon: 'fa-exclamation-triangle', description: 'Требуется калибровка' },
+    { id: 'gpsValid', name: 'GPS статус', unit: '', color: '#28a745', property: 'gpsValid', visible: false, order: 2, group: 'calibration', icon: 'fa-satellite', description: 'Статус GPS сигнала' }
+],
+
+// Параметры позиционирования
+positionParameters: [
+    { id: 'gpsLat', name: 'Широта', unit: '°', color: '#17a2b8', property: 'gpsLatitude', visible: false, order: 1, group: 'position', icon: 'fa-map-pin', description: 'GPS широта' },
+    { id: 'gpsLon', name: 'Долгота', unit: '°', color: '#20c997', property: 'gpsLongitude', visible: false, order: 2, group: 'position', icon: 'fa-map-pin', description: 'GPS долгота' }
+]
