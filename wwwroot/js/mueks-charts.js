@@ -1,18 +1,15 @@
 // mueks-charts.js - Модуль для визуализации данных модуля управления электроснабжением
+// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const MUEKSCharts = {
     chart: null,
     currentSensorId: null,
     allMeasurements: [],
-    dateSlider: null,
-    minDate: null,
-    maxDate: null,
     isLoading: false,
-    sliderInitialized: false,
-    currentDays: 7, // по умолчанию 7 дней для MUEKS
+    currentDays: 7,
     currentChartType: 'line',
     currentTab: 'voltage',
-    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
+    autoUpdateInstance: null,
 
     voltageParameters: [
         { id: 'voltageIn12b', name: 'Напряжение вх. 12В', unit: 'В', color: '#dc3545', property: 'voltagePowerIn12b', visible: true, order: 1, group: 'voltage', icon: 'fa-bolt' },
@@ -102,20 +99,17 @@ const MUEKSCharts = {
     },
 
     initAutoUpdate: function() {
-        // Проверяем, что AutoUpdateManager загружен
         if (typeof AutoUpdateManager === 'undefined') {
             console.error('AutoUpdateManager не загружен!');
             return;
         }
 
-        // Убеждаемся, что чекбокс существует
         const toggleElement = document.getElementById('mueksAutoUpdateToggle');
         if (!toggleElement) {
             console.error('Элемент mueksAutoUpdateToggle не найден!');
             return;
         }
 
-        // Создаем экземпляр автообновления
         this.autoUpdateInstance = AutoUpdateManager.create('mueks', {
             interval: 30000,
             onUpdate: () => {
@@ -123,16 +117,42 @@ const MUEKSCharts = {
                     console.log('MUEKS: автообновление...');
                     this.loadData(this.currentDays, true);
                 }
-            },
-            onStart: () => {
-                console.log('MUEKS: автообновление запущено');
-            },
-            onStop: () => {
-                console.log('MUEKS: автообновление остановлено');
             }
         });
 
         console.log('MUEKS: автообновление инициализировано');
+    },
+
+    initDateRangeSlider: function() {
+        // Проверяем наличие DateRangeSlider
+        if (typeof DateRangeSlider === 'undefined') {
+            console.error('DateRangeSlider не загружен!');
+            return;
+        }
+
+        // Создаем или получаем экземпляр слайдера
+        let slider = DateRangeSlider.get('mueks');
+        if (!slider) {
+            slider = DateRangeSlider.create('mueks', {
+                onRangeChange: (filteredData) => {
+                    // Временно заменяем все измерения отфильтрованными для отрисовки
+                    const originalData = this.allMeasurements;
+                    this.allMeasurements = filteredData;
+                    
+                    if (this.currentTab === 'tds') {
+                        this.renderTdsTable();
+                    } else {
+                        this.renderChart();
+                        this.updateStatistics();
+                    }
+                    
+                    this.allMeasurements = originalData;
+                }
+            });
+        }
+
+        // Инициализируем слайдер с текущими данными
+        DateRangeSlider.initSlider('mueks', this.allMeasurements);
     },
 
     createAllRadios: function() {
@@ -247,7 +267,6 @@ const MUEKSCharts = {
     cleanup: function() {
         console.log('MUEKSCharts.cleanup()');
         
-        // Уничтожаем экземпляр автообновления
         if (this.autoUpdateInstance) {
             AutoUpdateManager.destroy('mueks');
             this.autoUpdateInstance = null;
@@ -258,12 +277,6 @@ const MUEKSCharts = {
             this.chart = null;
         }
         
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-        
-        this.sliderInitialized = false;
         this.allMeasurements = [];
     },
 
@@ -290,6 +303,7 @@ const MUEKSCharts = {
 
                 this.updateLastUpdateTime(data);
 
+                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
@@ -307,96 +321,6 @@ const MUEKSCharts = {
                 this.xhr = null;
             }
         });
-    },
-
-    initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') {
-            console.error('noUiSlider не загружен');
-            return;
-        }
-
-        if (!this.allMeasurements || this.allMeasurements.length < 2) {
-            $('#mueksDateRangeSection').addClass('disabled');
-            $('#mueksSliderContainer').addClass('disabled');
-            return;
-        }
-
-        const ts = this.allMeasurements.map(m => new Date(m.dataTimestamp).getTime());
-        this.minDate = Math.min(...ts);
-        this.maxDate = Math.max(...ts);
-
-        if (isNaN(this.minDate) || isNaN(this.maxDate) || this.minDate >= this.maxDate) return;
-
-        const fmt = t => moment(t).format('DD.MM.YYYY HH:mm');
-
-        $('#mueksMinDateLabel').text(fmt(this.minDate));
-        $('#mueksMaxDateLabel').text(fmt(this.maxDate));
-        $('#mueksDateRangeLabel').text(`${fmt(this.minDate)} - ${fmt(this.maxDate)}`);
-
-        const slider = document.getElementById('mueksDateRangeSlider');
-        if (!slider) return;
-
-        $('#mueksDateRangeSection').removeClass('disabled');
-        $('#mueksSliderContainer').removeClass('disabled');
-
-        if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
-        this.dateSlider = null;
-        slider.innerHTML = '';
-
-        setTimeout(() => {
-            try {
-                this.dateSlider = noUiSlider.create(slider, {
-                    start: [this.minDate, this.maxDate],
-                    connect: true,
-                    range: { min: this.minDate, max: this.maxDate },
-                    step: 3600000,
-                    format: { to: v => Math.round(v), from: v => Math.round(v) },
-                    behaviour: 'tap-drag',
-                    animate: true,
-                    animationDuration: 300
-                });
-
-                this.dateSlider.on('update', v => {
-                    const s = moment(parseInt(v[0])).format('DD.MM.YYYY HH:mm');
-                    const e = moment(parseInt(v[1])).format('DD.MM.YYYY HH:mm');
-                    $('#mueksDateRangeLabel').text(`${s} - ${e}`);
-                });
-
-                this.dateSlider.on('start', () => {
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragStart');
-                });
-
-                this.dateSlider.on('end', v => {
-                    this.filterDataByDateRange(parseInt(v[0]), parseInt(v[1]));
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragEnd');
-                });
-
-                this.sliderInitialized = true;
-            } catch(e) {
-                console.error('Ошибка слайдера MUEKS:', e);
-            }
-        }, 50);
-    },
-
-    filterDataByDateRange: function(start, end) {
-        const filtered = this.allMeasurements.filter(m => {
-            const t = new Date(m.dataTimestamp).getTime();
-            return t >= start && t <= end;
-        });
-
-        const orig = this.allMeasurements;
-        this.allMeasurements = filtered;
-
-        if (this.currentTab === 'tds') {
-            this.renderTdsTable();
-        } else {
-            this.renderChart();
-            this.updateStatistics();
-        }
-
-        this.allMeasurements = orig;
     },
 
     renderChart: function() {
@@ -438,7 +362,6 @@ const MUEKSCharts = {
         const datasets = [];
 
         selected.forEach((p, i) => {
-            // Фильтруем null значения
             const validData = m
                 .map(x => {
                     const value = x[p.property];

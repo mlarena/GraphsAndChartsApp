@@ -1,19 +1,16 @@
-// dov-charts.js - Полная версия с использованием AutoUpdateManager
+// dov-charts.js - Модуль для визуализации данных датчика оптической видимости
+// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const DOVCharts = {
     visibilityChart: null,
     brightnessChart: null,
     currentSensorId: null,
     allMeasurements: [],
-    dateSlider: null,
-    minDate: null,
-    maxDate: null,
     currentChartType: 'visibility',
     isLoading: false,
     updateTimeout: null,
-    sliderInitialized: false,
     currentDays: 1,
-    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
+    autoUpdateInstance: null,
 
     init: function(sensorId) {
         console.log('DOVCharts.init()', sensorId);
@@ -56,20 +53,17 @@ const DOVCharts = {
     },
 
     initAutoUpdate: function() {
-        // Проверяем, что AutoUpdateManager загружен
         if (typeof AutoUpdateManager === 'undefined') {
             console.error('AutoUpdateManager не загружен!');
             return;
         }
 
-        // Убеждаемся, что чекбокс существует
         const toggleElement = document.getElementById('dovAutoUpdateToggle');
         if (!toggleElement) {
             console.error('Элемент dovAutoUpdateToggle не найден!');
             return;
         }
 
-        // Создаем экземпляр автообновления
         this.autoUpdateInstance = AutoUpdateManager.create('dov', {
             interval: 30000,
             onUpdate: () => {
@@ -77,16 +71,37 @@ const DOVCharts = {
                     console.log('DOV: автообновление...');
                     this.loadData(this.currentDays, true);
                 }
-            },
-            onStart: () => {
-                console.log('DOV: автообновление запущено');
-            },
-            onStop: () => {
-                console.log('DOV: автообновление остановлено');
             }
         });
 
         console.log('DOV: автообновление инициализировано');
+    },
+
+    initDateRangeSlider: function() {
+        // Проверяем наличие DateRangeSlider
+        if (typeof DateRangeSlider === 'undefined') {
+            console.error('DateRangeSlider не загружен!');
+            return;
+        }
+
+        // Создаем или получаем экземпляр слайдера
+        let slider = DateRangeSlider.get('dov');
+        if (!slider) {
+            slider = DateRangeSlider.create('dov', {
+                onRangeChange: (filteredData) => {
+                    // Отрисовываем график с отфильтрованными данными
+                    if (this.currentChartType === 'visibility') {
+                        this.renderVisibilityChart({ measurements: filteredData });
+                    } else {
+                        this.renderBrightnessChart({ measurements: filteredData });
+                    }
+                    this.updateStatistics({ measurements: filteredData });
+                }
+            });
+        }
+
+        // Инициализируем слайдер с текущими данными
+        DateRangeSlider.initSlider('dov', this.allMeasurements);
     },
 
     cleanup: function() {
@@ -98,6 +113,9 @@ const DOVCharts = {
             this.autoUpdateInstance = null;
         }
 
+        // Уничтожаем слайдер (DateRangeSlider сам управляет своими экземплярами)
+        // Не нужно вызывать destroy здесь, так как DateRangeSlider слушает событие sensorChanged
+
         if (this.visibilityChart) {
             this.visibilityChart.destroy();
             this.visibilityChart = null;
@@ -107,92 +125,7 @@ const DOVCharts = {
             this.brightnessChart = null;
         }
 
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-
-        this.sliderInitialized = false;
         this.allMeasurements = [];
-    },
-
-    initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') {
-            console.error('noUiSlider не загружен');
-            return;
-        }
-
-        if (!this.allMeasurements || this.allMeasurements.length < 2) {
-            $('#dovDateRangeSection').addClass('disabled');
-            $('#dovSliderContainer').addClass('disabled');
-            return;
-        }
-
-        const timestamps = this.allMeasurements.map(m => new Date(m.dataTimestamp).getTime());
-        this.minDate = Math.min(...timestamps);
-        this.maxDate = Math.max(...timestamps);
-
-        if (isNaN(this.minDate) || isNaN(this.maxDate) || this.minDate >= this.maxDate) {
-            console.error('Некорректные даты для слайдера DOV');
-            return;
-        }
-
-        const formatDate = (ts) => moment(ts).format('DD.MM.YYYY HH:mm');
-
-        $('#dovMinDateLabel').text(formatDate(this.minDate));
-        $('#dovMaxDateLabel').text(formatDate(this.maxDate));
-        $('#dovDateRangeLabel').text(`${formatDate(this.minDate)} - ${formatDate(this.maxDate)}`);
-
-        const slider = document.getElementById('dovDateRangeSlider');
-        if (!slider) return;
-
-        $('#dovDateRangeSection').removeClass('disabled');
-        $('#dovSliderContainer').removeClass('disabled');
-
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-
-        slider.innerHTML = '';
-
-        setTimeout(() => {
-            try {
-                this.dateSlider = noUiSlider.create(slider, {
-                    start: [this.minDate, this.maxDate],
-                    connect: true,
-                    range: { 'min': this.minDate, 'max': this.maxDate },
-                    step: 3600000,
-                    format: { to: v => Math.round(v), from: v => Math.round(v) },
-                    behaviour: 'tap-drag',
-                    animate: true,
-                    animationDuration: 300
-                });
-
-                this.dateSlider.on('update', (values) => {
-                    const start = moment(parseInt(values[0])).format('DD.MM.YYYY HH:mm');
-                    const end   = moment(parseInt(values[1])).format('DD.MM.YYYY HH:mm');
-                    $('#dovDateRangeLabel').text(`${start} - ${end}`);
-                });
-
-                this.dateSlider.on('start', () => {
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragStart');
-                });
-
-                this.dateSlider.on('end', (values) => {
-                    const startTime = parseInt(values[0]);
-                    const endTime   = parseInt(values[1]);
-                    this.filterDataByDateRange(startTime, endTime);
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragEnd');
-                });
-
-                this.sliderInitialized = true;
-            } catch(e) {
-                console.error('Ошибка создания слайдера DOV:', e);
-            }
-        }, 50);
     },
 
     loadData: function(days, silent = false) {
@@ -220,6 +153,7 @@ const DOVCharts = {
                 this.updateStatistics(data);
                 this.updateLastUpdateTime(data);
 
+                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
@@ -248,20 +182,6 @@ const DOVCharts = {
         `);
         $('body').append($n);
         setTimeout(() => $n.alert('close'), 3000);
-    },
-
-    filterDataByDateRange: function(startTime, endTime) {
-        const filtered = this.allMeasurements.filter(m => {
-            const t = new Date(m.dataTimestamp).getTime();
-            return t >= startTime && t <= endTime;
-        });
-
-        if (this.currentChartType === 'visibility') {
-            this.renderVisibilityChart({ measurements: filtered });
-        } else {
-            this.renderBrightnessChart({ measurements: filtered });
-        }
-        this.updateStatistics({ measurements: filtered });
     },
 
     toggleChart: function() {

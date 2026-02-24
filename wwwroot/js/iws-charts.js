@@ -1,18 +1,15 @@
 // iws-charts.js - Модуль для визуализации данных метеостанции IWS
+// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const IWSCharts = {
     chart: null,
     currentSensorId: null,
     allMeasurements: [],
-    dateSlider: null,
-    minDate: null,
-    maxDate: null,
     isLoading: false,
-    sliderInitialized: false,
     currentDays: 1,
     currentChartType: 'line',
     currentTab: 'weather',
-    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
+    autoUpdateInstance: null,
 
     // Параметры погоды
     weatherParameters: [
@@ -29,7 +26,7 @@ const IWSCharts = {
         { id: 'windVSound',   name: 'Скорость звука', unit: 'м/с', color: '#20c997', property: 'windVSound',    visible: false, order: 3, group: 'wind', icon: 'fa-volume-up' }
     ],
 
-    // Параметры осадков (только интенсивность и количество)
+    // Параметры осадков
     precipitationParameters: [
         { id: 'precipIntensity', name: 'Интенсивность', unit: 'мм/ч', color: '#0d6efd', property: 'precipitationIntensity', visible: true,  order: 1, group: 'precipitation', icon: 'fa-cloud-rain' },
         { id: 'precipQuantity',  name: 'Количество',    unit: 'мм',   color: '#17a2b8', property: 'precipitationQuantity',  visible: false, order: 2, group: 'precipitation', icon: 'fa-chart-line' }
@@ -62,7 +59,7 @@ const IWSCharts = {
         // Инициализация автообновления через менеджер
         this.initAutoUpdate();
         
-        this.loadData(1); // загружаем за 24 часа по умолчанию
+        this.loadData(1);
 
         // Обработчик кнопок периода
         $('#iwsTimeRangeButtons .btn').off('click').on('click', (e) => {
@@ -83,7 +80,7 @@ const IWSCharts = {
             this.renderChart();
         });
 
-        // Обработчик переключения вкладок (без позиции)
+        // Обработчик переключения вкладок
         $('#iwsTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
             const tabId = $(e.target).attr('id');
             const tabMap = {
@@ -108,20 +105,17 @@ const IWSCharts = {
     },
 
     initAutoUpdate: function() {
-        // Проверяем, что AutoUpdateManager загружен
         if (typeof AutoUpdateManager === 'undefined') {
             console.error('AutoUpdateManager не загружен!');
             return;
         }
 
-        // Убеждаемся, что чекбокс существует
         const toggleElement = document.getElementById('iwsAutoUpdateToggle');
         if (!toggleElement) {
             console.error('Элемент iwsAutoUpdateToggle не найден!');
             return;
         }
 
-        // Создаем экземпляр автообновления
         this.autoUpdateInstance = AutoUpdateManager.create('iws', {
             interval: 30000,
             onUpdate: () => {
@@ -129,20 +123,39 @@ const IWSCharts = {
                     console.log('IWS: автообновление...');
                     this.loadData(this.currentDays, true);
                 }
-            },
-            onStart: () => {
-                console.log('IWS: автообновление запущено');
-            },
-            onStop: () => {
-                console.log('IWS: автообновление остановлено');
             }
         });
 
         console.log('IWS: автообновление инициализировано');
     },
 
+    initDateRangeSlider: function() {
+        // Проверяем наличие DateRangeSlider
+        if (typeof DateRangeSlider === 'undefined') {
+            console.error('DateRangeSlider не загружен!');
+            return;
+        }
+
+        // Создаем или получаем экземпляр слайдера
+        let slider = DateRangeSlider.get('iws');
+        if (!slider) {
+            slider = DateRangeSlider.create('iws', {
+                onRangeChange: (filteredData) => {
+                    // Временно заменяем все измерения отфильтрованными для отрисовки
+                    const originalData = this.allMeasurements;
+                    this.allMeasurements = filteredData;
+                    this.renderChart();
+                    this.updateStatistics();
+                    this.allMeasurements = originalData;
+                }
+            });
+        }
+
+        // Инициализируем слайдер с текущими данными
+        DateRangeSlider.initSlider('iws', this.allMeasurements);
+    },
+
     createParameterRadios: function() {
-        // Создаем радио-кнопки для каждой группы (без позиции)
         this.createRadioGroup('Weather', this.weatherParameters);
         this.createRadioGroup('Wind', this.windParameters);
         this.createRadioGroup('Precipitation', this.precipitationParameters);
@@ -156,7 +169,6 @@ const IWSCharts = {
 
         container.empty();
         
-        // Сортируем и добавляем параметры
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
             container.append(this.createRadio(p, groupName.toLowerCase()));
         });
@@ -188,7 +200,6 @@ const IWSCharts = {
     },
 
     updateVisibleParameters: function() {
-        // Обновляем видимость для всех групп параметров (без позиции)
         const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
                 const radioId = `iws_radio_${p.id}`;
@@ -212,7 +223,6 @@ const IWSCharts = {
             'technical': this.technicalParameters
         };
         
-        // Возвращаем только выбранный параметр (должен быть один)
         return groups[this.currentTab]?.filter(p => p.visible) || [];
     },
 
@@ -230,7 +240,6 @@ const IWSCharts = {
     cleanup: function() {
         console.log('IWSCharts.cleanup()');
         
-        // Уничтожаем экземпляр автообновления
         if (this.autoUpdateInstance) {
             AutoUpdateManager.destroy('iws');
             this.autoUpdateInstance = null;
@@ -241,12 +250,6 @@ const IWSCharts = {
             this.chart = null;
         }
         
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-        
-        this.sliderInitialized = false;
         this.allMeasurements = [];
     },
 
@@ -269,6 +272,7 @@ const IWSCharts = {
                 this.updateStatistics();
                 this.updateLastUpdateTime(data);
 
+                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
@@ -288,98 +292,6 @@ const IWSCharts = {
         });
     },
 
-    initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') {
-            console.error('noUiSlider не загружен');
-            return;
-        }
-
-        if (!this.allMeasurements || this.allMeasurements.length < 2) {
-            $('#iwsDateRangeSection').addClass('disabled');
-            $('#iwsSliderContainer').addClass('disabled');
-            return;
-        }
-
-        const timestamps = this.allMeasurements.map(m => new Date(m.dataTimestamp).getTime());
-        this.minDate = Math.min(...timestamps);
-        this.maxDate = Math.max(...timestamps);
-
-        if (isNaN(this.minDate) || isNaN(this.maxDate) || this.minDate >= this.maxDate) {
-            console.error('Некорректные даты для слайдера IWS');
-            return;
-        }
-
-        const formatDate = (ts) => moment(ts).format('DD.MM.YYYY HH:mm');
-
-        $('#iwsMinDateLabel').text(formatDate(this.minDate));
-        $('#iwsMaxDateLabel').text(formatDate(this.maxDate));
-        $('#iwsDateRangeLabel').text(`${formatDate(this.minDate)} - ${formatDate(this.maxDate)}`);
-
-        const slider = document.getElementById('iwsDateRangeSlider');
-        if (!slider) return;
-
-        $('#iwsDateRangeSection').removeClass('disabled');
-        $('#iwsSliderContainer').removeClass('disabled');
-
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-
-        slider.innerHTML = '';
-
-        setTimeout(() => {
-            try {
-                this.dateSlider = noUiSlider.create(slider, {
-                    start: [this.minDate, this.maxDate],
-                    connect: true,
-                    range: { 'min': this.minDate, 'max': this.maxDate },
-                    step: 3600000,
-                    format: { to: v => Math.round(v), from: v => Math.round(v) },
-                    behaviour: 'tap-drag',
-                    animate: true,
-                    animationDuration: 300
-                });
-
-                this.dateSlider.on('update', (values) => {
-                    const start = moment(parseInt(values[0])).format('DD.MM.YYYY HH:mm');
-                    const end   = moment(parseInt(values[1])).format('DD.MM.YYYY HH:mm');
-                    $('#iwsDateRangeLabel').text(`${start} - ${end}`);
-                });
-
-                this.dateSlider.on('start', () => {
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragStart');
-                });
-
-                this.dateSlider.on('end', (values) => {
-                    const startTime = parseInt(values[0]);
-                    const endTime   = parseInt(values[1]);
-                    this.filterDataByDateRange(startTime, endTime);
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragEnd');
-                });
-
-                this.sliderInitialized = true;
-            } catch(e) {
-                console.error('Ошибка создания слайдера IWS:', e);
-            }
-        }, 50);
-    },
-
-    filterDataByDateRange: function(start, end) {
-        const filtered = this.allMeasurements.filter(m => {
-            const t = new Date(m.dataTimestamp).getTime();
-            return t >= start && t <= end;
-        });
-
-        const original = this.allMeasurements;
-        this.allMeasurements = filtered;
-        this.renderChart();
-        this.updateStatistics();
-        this.allMeasurements = original;
-    },
-
     renderChart: function() {
         if (!this.allMeasurements?.length) return;
 
@@ -397,7 +309,6 @@ const IWSCharts = {
 
         const selected = this.getSelectedParameters();
         if (!selected.length) {
-            // Показываем пустой график с сообщением
             this.chart = new Chart(ctx, {
                 type: 'line',
                 data: { labels: [], datasets: [] },
@@ -420,7 +331,6 @@ const IWSCharts = {
         const datasets = [];
 
         selected.forEach((param, i) => {
-            // Фильтруем null значения
             const validData = measurements
                 .map(m => {
                     const value = m[param.property];
@@ -446,7 +356,6 @@ const IWSCharts = {
                 yAxisID: i === 0 ? 'y' : `y${i + 1}`
             };
 
-            // Применяем тип графика
             if (this.currentChartType === 'scatter') {
                 dataset.type = 'scatter';
                 dataset.backgroundColor = param.color;
@@ -649,7 +558,6 @@ const IWSCharts = {
         setTimeout(() => $n.alert('close'), 3000);
     },
 
-    // Вспомогательные методы
     hexToRgba: function(hex, alpha) {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
@@ -690,11 +598,9 @@ const IWSCharts = {
     }
 };
 
-// Инициализация при загрузке страницы
 $(document).ready(function() {
     console.log('✅ IWS Charts загружен');
     
-    // Очищаем при смене сенсора
     $(document).on('sensorChanged', () => {
         if (typeof IWSCharts !== 'undefined') {
             IWSCharts.cleanup();

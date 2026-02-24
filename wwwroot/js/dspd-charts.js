@@ -1,18 +1,15 @@
 // dspd-charts.js - Модуль для визуализации данных датчика состояния дорожного полотна
+// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const DSPDCharts = {
     chart: null,
     currentSensorId: null,
     allMeasurements: [],
-    dateSlider: null,
-    minDate: null,
-    maxDate: null,
     isLoading: false,
-    sliderInitialized: false,
     currentDays: 1,
     currentChartType: 'line',
     currentTab: 'roadCondition',
-    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
+    autoUpdateInstance: null,
 
     // Параметры сцепления и состояния дороги
     roadConditionParameters: [
@@ -31,7 +28,7 @@ const DSPDCharts = {
         { id: 'pgmPct', name: '% ПГМ', unit: '%', color: '#e83e8c', property: 'pgmPercentage', visible: false, order: 5, group: 'precipitationLayer', icon: 'fa-flask', description: 'Процент противогололедных материалов' }
     ],
 
-    // Технические параметры датчика (без параметра "Дистанция")
+    // Технические параметры датчика
     technicalParameters: [
         { id: 'voltage', name: 'Напряжение', unit: 'В', color: '#6f42c1', property: 'voltagePower', visible: true, order: 1, group: 'technical', icon: 'fa-bolt', description: 'Напряжение питания' },
         { id: 'caseTemp', name: 'Темп. корпуса', unit: '°C', color: '#20c997', property: 'caseTemperature', visible: false, order: 2, group: 'technical', icon: 'fa-thermometer-empty', description: 'Температура корпуса датчика' },
@@ -69,7 +66,7 @@ const DSPDCharts = {
             this.renderChart();
         });
 
-        // Обработчик переключения вкладок (только оставшиеся)
+        // Обработчик переключения вкладок
         $('#dspdTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
             const tabId = $(e.target).attr('id');
             const tabMap = {
@@ -92,20 +89,17 @@ const DSPDCharts = {
     },
 
     initAutoUpdate: function() {
-        // Проверяем, что AutoUpdateManager загружен
         if (typeof AutoUpdateManager === 'undefined') {
             console.error('AutoUpdateManager не загружен!');
             return;
         }
 
-        // Убеждаемся, что чекбокс существует
         const toggleElement = document.getElementById('dspdAutoUpdateToggle');
         if (!toggleElement) {
             console.error('Элемент dspdAutoUpdateToggle не найден!');
             return;
         }
 
-        // Создаем экземпляр автообновления
         this.autoUpdateInstance = AutoUpdateManager.create('dspd', {
             interval: 30000,
             onUpdate: () => {
@@ -113,20 +107,39 @@ const DSPDCharts = {
                     console.log('DSPD: автообновление...');
                     this.loadData(this.currentDays, true);
                 }
-            },
-            onStart: () => {
-                console.log('DSPD: автообновление запущено');
-            },
-            onStop: () => {
-                console.log('DSPD: автообновление остановлено');
             }
         });
 
         console.log('DSPD: автообновление инициализировано');
     },
 
+    initDateRangeSlider: function() {
+        // Проверяем наличие DateRangeSlider
+        if (typeof DateRangeSlider === 'undefined') {
+            console.error('DateRangeSlider не загружен!');
+            return;
+        }
+
+        // Создаем или получаем экземпляр слайдера
+        let slider = DateRangeSlider.get('dspd');
+        if (!slider) {
+            slider = DateRangeSlider.create('dspd', {
+                onRangeChange: (filteredData) => {
+                    // Временно заменяем все измерения отфильтрованными для отрисовки
+                    const originalData = this.allMeasurements;
+                    this.allMeasurements = filteredData;
+                    this.renderChart();
+                    this.updateStatistics();
+                    this.allMeasurements = originalData;
+                }
+            });
+        }
+
+        // Инициализируем слайдер с текущими данными
+        DateRangeSlider.initSlider('dspd', this.allMeasurements);
+    },
+
     createParameterRadios: function() {
-        // Создаем радио-кнопки для каждой группы (только оставшиеся)
         this.createRadioGroup('RoadCondition', this.roadConditionParameters);
         this.createRadioGroup('PrecipitationLayer', this.precipitationLayerParameters);
         this.createRadioGroup('Technical', this.technicalParameters);
@@ -138,14 +151,12 @@ const DSPDCharts = {
 
         container.empty();
         
-        // Сортируем и добавляем параметры
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
             container.append(this.createRadio(p, groupName));
         });
     },
 
     createRadio: function(param, group) {
-        // Генерируем уникальное имя для группы радио-кнопок
         const groupPrefix = group.toLowerCase();
         const radioName = `dspd_${groupPrefix}_param`;
         
@@ -172,7 +183,6 @@ const DSPDCharts = {
     },
 
     updateVisibleParameters: function() {
-        // Обновляем видимость для всех групп параметров на основе выбранной радио-кнопки
         const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
                 const radioId = `dspd_radio_${p.id}`;
@@ -192,7 +202,6 @@ const DSPDCharts = {
             'technical': this.technicalParameters
         };
         
-        // Возвращаем только выбранный параметр (должен быть один)
         return groups[this.currentTab]?.filter(p => p.visible) || [];
     },
 
@@ -208,7 +217,6 @@ const DSPDCharts = {
     cleanup: function() {
         console.log('DSPDCharts.cleanup()');
         
-        // Уничтожаем экземпляр автообновления
         if (this.autoUpdateInstance) {
             AutoUpdateManager.destroy('dspd');
             this.autoUpdateInstance = null;
@@ -219,12 +227,6 @@ const DSPDCharts = {
             this.chart = null;
         }
         
-        if (this.dateSlider) {
-            try { this.dateSlider.destroy(); } catch(e) {}
-            this.dateSlider = null;
-        }
-        
-        this.sliderInitialized = false;
         this.allMeasurements = [];
     },
 
@@ -246,6 +248,7 @@ const DSPDCharts = {
                 this.updateStatistics();
                 this.updateLastUpdateTime(data);
 
+                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
@@ -263,90 +266,6 @@ const DSPDCharts = {
                 this.xhr = null;
             }
         });
-    },
-
-    initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') {
-            console.error('noUiSlider не загружен');
-            return;
-        }
-
-        if (!this.allMeasurements || this.allMeasurements.length < 2) {
-            $('#dspdDateRangeSection').addClass('disabled');
-            $('#dspdSliderContainer').addClass('disabled');
-            return;
-        }
-
-        const ts = this.allMeasurements.map(m => new Date(m.dataTimestamp).getTime());
-        this.minDate = Math.min(...ts);
-        this.maxDate = Math.max(...ts);
-
-        if (isNaN(this.minDate) || isNaN(this.maxDate) || this.minDate >= this.maxDate) return;
-
-        const fmt = ts => moment(ts).format('DD.MM.YYYY HH:mm');
-
-        $('#dspdMinDateLabel').text(fmt(this.minDate));
-        $('#dspdMaxDateLabel').text(fmt(this.maxDate));
-        $('#dspdDateRangeLabel').text(`${fmt(this.minDate)} - ${fmt(this.maxDate)}`);
-
-        const sliderEl = document.getElementById('dspdDateRangeSlider');
-        if (!sliderEl) return;
-
-        $('#dspdDateRangeSection').removeClass('disabled');
-        $('#dspdSliderContainer').removeClass('disabled');
-
-        if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
-        this.dateSlider = null;
-        sliderEl.innerHTML = '';
-
-        setTimeout(() => {
-            try {
-                this.dateSlider = noUiSlider.create(sliderEl, {
-                    start: [this.minDate, this.maxDate],
-                    connect: true,
-                    range: { min: this.minDate, max: this.maxDate },
-                    step: 3600000,
-                    format: { to: v => Math.round(v), from: v => Math.round(v) },
-                    behaviour: 'tap-drag',
-                    animate: true,
-                    animationDuration: 300
-                });
-
-                this.dateSlider.on('update', values => {
-                    const s = moment(parseInt(values[0])).format('DD.MM.YYYY HH:mm');
-                    const e = moment(parseInt(values[1])).format('DD.MM.YYYY HH:mm');
-                    $('#dspdDateRangeLabel').text(`${s} - ${e}`);
-                });
-
-                this.dateSlider.on('start', () => {
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragStart');
-                });
-
-                this.dateSlider.on('end', values => {
-                    this.filterDataByDateRange(parseInt(values[0]), parseInt(values[1]));
-                    // Генерируем событие для AutoUpdateManager
-                    $(document).trigger('sliderDragEnd');
-                });
-
-                this.sliderInitialized = true;
-            } catch(e) {
-                console.error('Ошибка слайдера DSPD:', e);
-            }
-        }, 50);
-    },
-
-    filterDataByDateRange: function(start, end) {
-        const filtered = this.allMeasurements.filter(m => {
-            const t = new Date(m.dataTimestamp).getTime();
-            return t >= start && t <= end;
-        });
-
-        const orig = this.allMeasurements;
-        this.allMeasurements = filtered;
-        this.renderChart();
-        this.updateStatistics();
-        this.allMeasurements = orig;
     },
 
     renderChart: function() {
@@ -388,7 +307,6 @@ const DSPDCharts = {
         const datasets = [];
 
         selected.forEach((p, i) => {
-            // Фильтруем null значения
             const validData = m
                 .map(x => {
                     const value = x[p.property];
