@@ -30,6 +30,23 @@
                         Prefix = "iws", 
                         Color = "success" 
                     })
+                    
+                    <!-- ВЫБОР ПЕРИОДА -->
+                    <div class="d-flex align-items-center ms-3">
+                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "iws", OutlineColor = "success", ActiveDays = 1 })
+                    </div>
+                    
+                    <!-- ТИП ГРАФИКА -->
+                    <div class="d-flex align-items-center ms-3">
+                        <span class="text-muted me-2">Тип графика:</span>
+                        <div class="btn-group" role="group" id="iwsChartTypeRadio">
+                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeLine" value="line" autocomplete="off" checked>
+                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeLine">Линейный</label>
+                            
+                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeScatter" value="scatter" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeScatter">Точечный</label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -64,27 +81,6 @@
                         </button>
                     </li>
                 </ul>
-            </div>
-        </div>
-
-        <!-- Выбор периода + тип графика -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "iws", OutlineColor = "success", ActiveDays = 1 })
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="text-muted me-2">Тип графика:</span>
-                        <div class="btn-group" role="group" id="iwsChartTypeRadio">
-                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeLine" value="line" autocomplete="off" checked>
-                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeLine">Линейный</label>
-                            
-                            <input type="radio" class="btn-check" name="iwsChartType" id="iwsChartTypeScatter" value="scatter" autocomplete="off">
-                            <label class="btn btn-outline-success btn-sm" for="iwsChartTypeScatter">Точечный</label>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
