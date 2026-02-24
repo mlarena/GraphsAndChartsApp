@@ -1,4 +1,4 @@
-// iws-charts.js - Полная версия для метеостанции IWS
+// iws-charts.js - Модуль для визуализации данных метеостанции IWS
 
 const IWSCharts = {
     chart: null,
@@ -12,29 +12,27 @@ const IWSCharts = {
     currentDays: 1,
     currentChartType: 'line',
     currentTab: 'weather',
+    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
 
     // Параметры погоды
     weatherParameters: [
         { id: 'envTemp',   name: 'Температура',     unit: '°C', color: '#dc3545', property: 'environmentTemperature', visible: true,  order: 1, group: 'weather', icon: 'fa-temperature-high' },
-        { id: 'humidity',  name: 'Влажность',       unit: '%',  color: '#0d6efd', property: 'humidityPercentage',      visible: false,  order: 2, group: 'weather', icon: 'fa-tint' },
-        { id: 'dewPoint',  name: 'Точка росы',      unit: '°C', color: '#17a2b8', property: 'dewPoint',                visible: false,  order: 3, group: 'weather', icon: 'fa-water' },
+        { id: 'humidity',  name: 'Влажность',       unit: '%',  color: '#0d6efd', property: 'humidityPercentage',      visible: false, order: 2, group: 'weather', icon: 'fa-tint' },
+        { id: 'dewPoint',  name: 'Точка росы',      unit: '°C', color: '#17a2b8', property: 'dewPoint',                visible: false, order: 3, group: 'weather', icon: 'fa-water' },
         { id: 'co2',       name: 'CO₂',             unit: 'ppm',color: '#6f42c1', property: 'co2Level',                visible: false, order: 4, group: 'weather', icon: 'fa-wind' }
     ],
 
     // Параметры ветра
     windParameters: [
         { id: 'windSpeed',    name: 'Скорость ветра', unit: 'м/с', color: '#28a745', property: 'windSpeed',     visible: true,  order: 1, group: 'wind', icon: 'fa-wind' },
-        { id: 'windDirection',name: 'Направление',    unit: '°',   color: '#fd7e14', property: 'windDirection', visible: false,  order: 2, group: 'wind', icon: 'fa-compass' },
+        { id: 'windDirection',name: 'Направление',    unit: '°',   color: '#fd7e14', property: 'windDirection', visible: false, order: 2, group: 'wind', icon: 'fa-compass' },
         { id: 'windVSound',   name: 'Скорость звука', unit: 'м/с', color: '#20c997', property: 'windVSound',    visible: false, order: 3, group: 'wind', icon: 'fa-volume-up' }
     ],
 
-    // Параметры осадков
+    // Параметры осадков (только интенсивность и количество)
     precipitationParameters: [
         { id: 'precipIntensity', name: 'Интенсивность', unit: 'мм/ч', color: '#0d6efd', property: 'precipitationIntensity', visible: true,  order: 1, group: 'precipitation', icon: 'fa-cloud-rain' },
-        { id: 'precipQuantity',  name: 'Количество',    unit: 'мм',   color: '#17a2b8', property: 'precipitationQuantity',  visible: false,  order: 2, group: 'precipitation', icon: 'fa-chart-line' },
-        { id: 'precipType',      name: 'Тип осадков',   unit: '',     color: '#6c757d', property: 'precipitationType',     visible: false, order: 3, group: 'precipitation', icon: 'fa-question' },
-        { id: 'precipElapsed',   name: 'Время осадков', unit: 'с',    color: '#ffc107', property: 'precipitationElapsed',  visible: false, order: 4, group: 'precipitation', icon: 'fa-clock' },
-        { id: 'precipPeriod',    name: 'Период',        unit: 'с',    color: '#dc3545', property: 'precipitationPeriod',   visible: false, order: 5, group: 'precipitation', icon: 'fa-hourglass' }
+        { id: 'precipQuantity',  name: 'Количество',    unit: 'мм',   color: '#17a2b8', property: 'precipitationQuantity',  visible: false, order: 2, group: 'precipitation', icon: 'fa-chart-line' }
     ],
 
     // Параметры давления
@@ -42,14 +40,6 @@ const IWSCharts = {
         { id: 'pressureHpa',   name: 'Давление (гПа)', unit: 'гПа', color: '#6610f2', property: 'pressureHpa',     visible: true, order: 1, group: 'pressure', icon: 'fa-thermometer-half' },
         { id: 'pressureQNH',   name: 'QNH (гПа)',      unit: 'гПа', color: '#6f42c1', property: 'pressureQNHHpa',  visible: false, order: 2, group: 'pressure', icon: 'fa-thermometer-half' },
         { id: 'pressureMmHg',  name: 'Давление (мм рт.ст.)', unit: 'мм', color: '#e83e8c', property: 'pressureMmHg', visible: false, order: 3, group: 'pressure', icon: 'fa-thermometer-half' }
-    ],
-
-    // Параметры позиционирования
-    positionParameters: [
-        { id: 'latitude',  name: 'Широта',      unit: '°', color: '#28a745', property: 'iwsLatitude',  visible: true, order: 1, group: 'position', icon: 'fa-map-pin' },
-        { id: 'longitude', name: 'Долгота',     unit: '°', color: '#17a2b8', property: 'iwsLongitude', visible: false, order: 2, group: 'position', icon: 'fa-map-pin' },
-        { id: 'altitude',  name: 'Высота',      unit: 'м', color: '#ffc107', property: 'altitude',     visible: false,  order: 3, group: 'position', icon: 'fa-mountain' },
-        { id: 'gpsSpeed',  name: 'Скорость GPS',unit: 'м/с',color: '#dc3545', property: 'gpsSpeed',     visible: false, order: 4, group: 'position', icon: 'fa-tachometer-alt' }
     ],
 
     // Технические параметры
@@ -62,20 +52,16 @@ const IWSCharts = {
         { id: 'pitch',         name: 'Тангаж',          unit: '°',   color: '#0d6efd', property: 'pitchAngle',        visible: false, order: 6, group: 'technical', icon: 'fa-rotate-right' }
     ],
 
-    // Автообновление
-    autoUpdateEnabled: true,
-    autoUpdateInterval: 30000,
-    autoUpdateTimerId: null,
-    countdownInterval: null,
-    lastUpdateTime: null,
-    tempAutoUpdateState: null,
-
     init: function(sensorId) {
         console.log('IWSCharts.init()', sensorId);
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
         this.createParameterRadios();
+        
+        // Инициализация автообновления через менеджер
+        this.initAutoUpdate();
+        
         this.loadData(1); // загружаем за 24 часа по умолчанию
 
         // Обработчик кнопок периода
@@ -88,10 +74,6 @@ const IWSCharts = {
             const days = btn.data('days');
             this.currentDays = days;
 
-            if (this.autoUpdateEnabled) {
-                this.restartAutoUpdate();
-            }
-
             this.loadData(days);
         });
 
@@ -101,7 +83,7 @@ const IWSCharts = {
             this.renderChart();
         });
 
-        // Обработчик переключения вкладок
+        // Обработчик переключения вкладок (без позиции)
         $('#iwsTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
             const tabId = $(e.target).attr('id');
             const tabMap = {
@@ -109,7 +91,6 @@ const IWSCharts = {
                 'wind-tab': 'wind',
                 'precipitation-tab': 'precipitation',
                 'pressure-tab': 'pressure',
-                'position-tab': 'position',
                 'technical-tab': 'technical'
             };
             this.currentTab = tabMap[tabId] || 'weather';
@@ -124,45 +105,60 @@ const IWSCharts = {
             this.renderChart();
             this.updateStatistics();
         });
+    },
 
-        // Обработчик автообновления
-        $('#iwsAutoUpdateToggle').off('change').on('change', (e) => {
-            const checked = $(e.currentTarget).is(':checked');
-            if (checked) {
-                this.autoUpdateEnabled = true;
-                this.startAutoUpdate();
-                $('#iwsCountdownTimer').show();
-                console.log('✅ Автообновление IWS ВКЛЮЧЕНО');
-            } else {
-                this.autoUpdateEnabled = false;
-                this.stopAutoUpdate();
-                $('#iwsCountdownTimer').hide();
-                console.log('❌ Автообновление IWS ОТКЛЮЧЕНО');
+    initAutoUpdate: function() {
+        // Проверяем, что AutoUpdateManager загружен
+        if (typeof AutoUpdateManager === 'undefined') {
+            console.error('AutoUpdateManager не загружен!');
+            return;
+        }
+
+        // Убеждаемся, что чекбокс существует
+        const toggleElement = document.getElementById('iwsAutoUpdateToggle');
+        if (!toggleElement) {
+            console.error('Элемент iwsAutoUpdateToggle не найден!');
+            return;
+        }
+
+        // Создаем экземпляр автообновления
+        this.autoUpdateInstance = AutoUpdateManager.create('iws', {
+            interval: 30000,
+            onUpdate: () => {
+                if (this.currentSensorId) {
+                    console.log('IWS: автообновление...');
+                    this.loadData(this.currentDays, true);
+                }
+            },
+            onStart: () => {
+                console.log('IWS: автообновление запущено');
+            },
+            onStop: () => {
+                console.log('IWS: автообновление остановлено');
             }
         });
 
-        this.startAutoUpdate();
+        console.log('IWS: автообновление инициализировано');
     },
 
     createParameterRadios: function() {
-        // Создаем радио-кнопки для каждой группы
-        this.createRadioGroup('weather', this.weatherParameters);
-        this.createRadioGroup('wind', this.windParameters);
-        this.createRadioGroup('precipitation', this.precipitationParameters);
-        this.createRadioGroup('pressure', this.pressureParameters);
-        this.createRadioGroup('position', this.positionParameters);
-        this.createRadioGroup('technical', this.technicalParameters);
+        // Создаем радио-кнопки для каждой группы (без позиции)
+        this.createRadioGroup('Weather', this.weatherParameters);
+        this.createRadioGroup('Wind', this.windParameters);
+        this.createRadioGroup('Precipitation', this.precipitationParameters);
+        this.createRadioGroup('Pressure', this.pressureParameters);
+        this.createRadioGroup('Technical', this.technicalParameters);
     },
 
     createRadioGroup: function(groupName, parameters) {
-        const container = $(`#iws${groupName.charAt(0).toUpperCase() + groupName.slice(1)}Radios`);
+        const container = $(`#iws${groupName}Radios`);
         if (!container.length) return;
 
         container.empty();
         
         // Сортируем и добавляем параметры
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
-            container.append(this.createRadio(p, groupName));
+            container.append(this.createRadio(p, groupName.toLowerCase()));
         });
     },
 
@@ -181,9 +177,9 @@ const IWSCharts = {
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="iws_radio_${param.id}">
+                    <label class="form-check-label small" for="iws_radio_${param.id}" title="${param.description || ''}">
                         <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
-                        <span style="display:inline-block;width:8px;height:8px;background-color:${param.color};border-radius:50%;margin-right:4px;"></span>
+                        <span style="display:inline-block; width:8px; height:8px; background-color:${param.color}; border-radius:50%; margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
                 </div>
@@ -192,19 +188,19 @@ const IWSCharts = {
     },
 
     updateVisibleParameters: function() {
-        // Обновляем видимость для всех групп параметров на основе выбранной радио-кнопки
-        const updateGroup = (groupParams, groupName) => {
+        // Обновляем видимость для всех групп параметров (без позиции)
+        const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
-                p.visible = $(`#iws_radio_${p.id}`).is(':checked');
+                const radioId = `iws_radio_${p.id}`;
+                p.visible = $(`#${radioId}`).is(':checked');
             });
         };
         
-        updateGroup(this.weatherParameters, 'weather');
-        updateGroup(this.windParameters, 'wind');
-        updateGroup(this.precipitationParameters, 'precipitation');
-        updateGroup(this.pressureParameters, 'pressure');
-        updateGroup(this.positionParameters, 'position');
-        updateGroup(this.technicalParameters, 'technical');
+        updateGroup(this.weatherParameters);
+        updateGroup(this.windParameters);
+        updateGroup(this.precipitationParameters);
+        updateGroup(this.pressureParameters);
+        updateGroup(this.technicalParameters);
     },
 
     getSelectedParameters: function() {
@@ -213,10 +209,10 @@ const IWSCharts = {
             'wind': this.windParameters,
             'precipitation': this.precipitationParameters,
             'pressure': this.pressureParameters,
-            'position': this.positionParameters,
             'technical': this.technicalParameters
         };
         
+        // Возвращаем только выбранный параметр (должен быть один)
         return groups[this.currentTab]?.filter(p => p.visible) || [];
     },
 
@@ -226,69 +222,30 @@ const IWSCharts = {
             'wind': 'Параметры ветра',
             'precipitation': 'Параметры осадков',
             'pressure': 'Параметры давления',
-            'position': 'Параметры позиционирования',
             'technical': 'Технические параметры'
         };
         $('#iwsChartTitle').text(titles[this.currentTab] || 'Параметры IWS');
     },
 
-    startAutoUpdate: function() {
-        this.stopAutoUpdate();
-
-        if (!this.autoUpdateEnabled) return;
-
-        console.log('🔄 Запуск автообновления IWS (30 сек)');
-
-        let secondsLeft = 30;
-        $('#iwsCountdownTimer').text(secondsLeft).show();
-
-        this.countdownInterval = setInterval(() => {
-            secondsLeft--;
-            if (secondsLeft <= 0) secondsLeft = 30;
-            $('#iwsCountdownTimer').text(secondsLeft);
-        }, 1000);
-
-        this.autoUpdateTimerId = setInterval(() => {
-            if (this.autoUpdateEnabled && this.currentSensorId) {
-                console.log('Автообновление IWS: загрузка...');
-                this.loadData(this.currentDays, true);
-            }
-        }, this.autoUpdateInterval);
-    },
-
-    stopAutoUpdate: function() {
-        if (this.autoUpdateTimerId) {
-            clearInterval(this.autoUpdateTimerId);
-            this.autoUpdateTimerId = null;
-        }
-        if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-            this.countdownInterval = null;
-        }
-    },
-
-    restartAutoUpdate: function() {
-        if (this.autoUpdateEnabled) this.startAutoUpdate();
-    },
-
     cleanup: function() {
         console.log('IWSCharts.cleanup()');
-        this.stopAutoUpdate();
-        this.autoUpdateEnabled = true;
-
-        $('#iwsAutoUpdateToggle').prop('checked', true);
-        $('#iwsCountdownTimer').show().text('30');
+        
+        // Уничтожаем экземпляр автообновления
+        if (this.autoUpdateInstance) {
+            AutoUpdateManager.destroy('iws');
+            this.autoUpdateInstance = null;
+        }
 
         if (this.chart) {
             this.chart.destroy();
             this.chart = null;
         }
-
+        
         if (this.dateSlider) {
             try { this.dateSlider.destroy(); } catch(e) {}
             this.dateSlider = null;
         }
-
+        
         this.sliderInitialized = false;
         this.allMeasurements = [];
     },
@@ -309,12 +266,12 @@ const IWSCharts = {
                 const hasNew = this.allMeasurements.length > oldCount;
 
                 this.renderChart();
-                this.updateStatistics(data);
+                this.updateStatistics();
                 this.updateLastUpdateTime(data);
 
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
-                if (silent && hasNew && this.autoUpdateEnabled) {
+                if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
                     this.showNotification('Получены новые данные IWS');
                 }
 
@@ -329,17 +286,6 @@ const IWSCharts = {
                 this.xhr = null;
             }
         });
-    },
-
-    showNotification: function(message) {
-        const $n = $(`
-            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index:9999;" role="alert">
-                <i class="fas fa-info-circle"></i> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append($n);
-        setTimeout(() => $n.alert('close'), 3000);
     },
 
     initDateRangeSlider: function() {
@@ -401,24 +347,17 @@ const IWSCharts = {
                     $('#iwsDateRangeLabel').text(`${start} - ${end}`);
                 });
 
+                this.dateSlider.on('start', () => {
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragStart');
+                });
+
                 this.dateSlider.on('end', (values) => {
                     const startTime = parseInt(values[0]);
                     const endTime   = parseInt(values[1]);
                     this.filterDataByDateRange(startTime, endTime);
-                });
-
-                this.dateSlider.on('start', () => {
-                    if (this.autoUpdateEnabled) {
-                        this.tempAutoUpdateState = this.autoUpdateEnabled;
-                        this.stopAutoUpdate();
-                    }
-                });
-
-                this.dateSlider.on('end', () => {
-                    if (this.tempAutoUpdateState) {
-                        this.startAutoUpdate();
-                        this.tempAutoUpdateState = null;
-                    }
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragEnd');
                 });
 
                 this.sliderInitialized = true;
@@ -479,9 +418,8 @@ const IWSCharts = {
         }
 
         const datasets = [];
-        const yAxes = {};
 
-        selected.forEach((param, index) => {
+        selected.forEach((param, i) => {
             // Фильтруем null значения
             const validData = measurements
                 .map(m => {
@@ -505,7 +443,7 @@ const IWSCharts = {
                 pointHoverRadius: 6,
                 tension: 0.3,
                 fill: false,
-                yAxisID: index === 0 ? 'y' : `y${index + 1}`
+                yAxisID: i === 0 ? 'y' : `y${i + 1}`
             };
 
             // Применяем тип графика
@@ -521,29 +459,6 @@ const IWSCharts = {
             }
 
             datasets.push(dataset);
-
-            // Настраиваем ось Y
-            const axisId = index === 0 ? 'y' : `y${index + 1}`;
-            yAxes[axisId] = {
-                type: 'linear',
-                display: true,
-                position: index === 0 ? 'left' : 'right',
-                title: {
-                    display: true,
-                    text: `${param.name} ${param.unit ? `(${param.unit})` : ''}`
-                },
-                grid: {
-                    drawOnChartArea: index === 0
-                },
-                ticks: {
-                    callback: function(value) {
-                        if (param.unit === '°' && param.id === 'windDirection') {
-                            return value + '°';
-                        }
-                        return param.unit ? value.toFixed(1) : value;
-                    }
-                }
-            };
         });
 
         if (datasets.length === 0) {
@@ -565,6 +480,31 @@ const IWSCharts = {
             });
             return;
         }
+
+        const yAxes = {};
+        selected.forEach((param, i) => {
+            const id = i === 0 ? 'y' : `y${i + 1}`;
+            yAxes[id] = {
+                type: 'linear',
+                display: true,
+                position: i === 0 ? 'left' : 'right',
+                title: {
+                    display: true,
+                    text: `${param.name} ${param.unit ? `(${param.unit})` : ''}`
+                },
+                grid: {
+                    drawOnChartArea: i === 0
+                },
+                ticks: {
+                    callback: function(value) {
+                        if (param.unit === '°' && param.id === 'windDirection') {
+                            return value + '°';
+                        }
+                        return param.unit ? value.toFixed(1) : value;
+                    }
+                }
+            };
+        });
 
         this.chart = new Chart(ctx, {
             type: this.currentChartType === 'scatter' ? 'scatter' : 'line',
@@ -692,7 +632,21 @@ const IWSCharts = {
         }
         const last = measurements[measurements.length - 1].dataTimestamp;
         $('#iwsLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
-        this.lastUpdateTime = last;
+        
+        if (this.autoUpdateInstance) {
+            this.autoUpdateInstance.updateLastUpdateTime(last);
+        }
+    },
+
+    showNotification: function(message) {
+        const $n = $(`
+            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index:9999;" role="alert">
+                <i class="fas fa-info-circle"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('body').append($n);
+        setTimeout(() => $n.alert('close'), 3000);
     },
 
     // Вспомогательные методы

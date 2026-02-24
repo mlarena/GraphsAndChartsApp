@@ -1,4 +1,4 @@
-// DSPD Charts - Модуль для визуализации данных датчика состояния дорожного полотна
+// dspd-charts.js - Модуль для визуализации данных датчика состояния дорожного полотна
 
 const DSPDCharts = {
     chart: null,
@@ -12,6 +12,7 @@ const DSPDCharts = {
     currentDays: 1,
     currentChartType: 'line',
     currentTab: 'roadCondition',
+    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
 
     // Параметры сцепления и состояния дороги
     roadConditionParameters: [
@@ -30,33 +31,12 @@ const DSPDCharts = {
         { id: 'pgmPct', name: '% ПГМ', unit: '%', color: '#e83e8c', property: 'pgmPercentage', visible: false, order: 5, group: 'precipitationLayer', icon: 'fa-flask', description: 'Процент противогололедных материалов' }
     ],
 
-    // Технические параметры датчика
+    // Технические параметры датчика (без параметра "Дистанция")
     technicalParameters: [
         { id: 'voltage', name: 'Напряжение', unit: 'В', color: '#6f42c1', property: 'voltagePower', visible: true, order: 1, group: 'technical', icon: 'fa-bolt', description: 'Напряжение питания' },
         { id: 'caseTemp', name: 'Темп. корпуса', unit: '°C', color: '#20c997', property: 'caseTemperature', visible: false, order: 2, group: 'technical', icon: 'fa-thermometer-empty', description: 'Температура корпуса датчика' },
-        { id: 'shake', name: 'Вибрация', unit: '', color: '#fd7e14', property: 'shakeLevel', visible: false, order: 3, group: 'technical', icon: 'fa-wave-square', description: 'Уровень вибрации' },
-        { id: 'distance', name: 'Дистанция', unit: 'мм', color: '#7952b3', property: 'distanceToSurface', visible: false, order: 4, group: 'technical', icon: 'fa-ruler', description: 'Расстояние до поверхности' }
+        { id: 'shake', name: 'Вибрация', unit: '', color: '#fd7e14', property: 'shakeLevel', visible: false, order: 3, group: 'technical', icon: 'fa-wave-square', description: 'Уровень вибрации' }
     ],
-
-    // Параметры калибровки и статуса
-    calibrationParameters: [
-        { id: 'calibrationNeeded', name: 'Калибровка', unit: '', color: '#dc3545', property: 'calibrationNeeded', visible: true, order: 1, group: 'calibration', icon: 'fa-exclamation-triangle', description: 'Требуется калибровка' },
-        { id: 'gpsValid', name: 'GPS статус', unit: '', color: '#28a745', property: 'gpsValid', visible: false, order: 2, group: 'calibration', icon: 'fa-satellite', description: 'Статус GPS сигнала' }
-    ],
-
-    // Параметры позиционирования
-    positionParameters: [
-        { id: 'gpsLat', name: 'Широта', unit: '°', color: '#17a2b8', property: 'gpsLatitude', visible: true, order: 1, group: 'position', icon: 'fa-map-pin', description: 'GPS широта' },
-        { id: 'gpsLon', name: 'Долгота', unit: '°', color: '#20c997', property: 'gpsLongitude', visible: false, order: 2, group: 'position', icon: 'fa-map-pin', description: 'GPS долгота' }
-    ],
-
-    // Автообновление
-    autoUpdateEnabled: true,
-    autoUpdateInterval: 30000,
-    autoUpdateTimerId: null,
-    countdownInterval: null,
-    lastUpdateTime: null,
-    tempAutoUpdateState: null,
 
     init: function(sensorId) {
         console.log('DSPDCharts.init()', sensorId);
@@ -64,6 +44,10 @@ const DSPDCharts = {
         moment.locale('ru');
 
         this.createParameterRadios();
+        
+        // Инициализация автообновления через менеджер
+        this.initAutoUpdate();
+        
         this.loadData(1);
 
         // Обработчик кнопок периода
@@ -76,7 +60,6 @@ const DSPDCharts = {
             const days = btn.data('days');
             this.currentDays = days;
 
-            if (this.autoUpdateEnabled) this.restartAutoUpdate();
             this.loadData(days);
         });
 
@@ -86,15 +69,13 @@ const DSPDCharts = {
             this.renderChart();
         });
 
-        // Обработчик переключения вкладок
+        // Обработчик переключения вкладок (только оставшиеся)
         $('#dspdTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
             const tabId = $(e.target).attr('id');
             const tabMap = {
                 'road-condition-tab': 'roadCondition',
                 'precipitation-layer-tab': 'precipitationLayer',
-                'technical-tab': 'technical',
-                'calibration-tab': 'calibration',
-                'position-tab': 'position'
+                'technical-tab': 'technical'
             };
             this.currentTab = tabMap[tabId] || 'roadCondition';
             this.updateChartTitle();
@@ -108,31 +89,47 @@ const DSPDCharts = {
             this.renderChart();
             this.updateStatistics();
         });
+    },
 
-        // Автообновление
-        $('#dspdAutoUpdateToggle').off('change').on('change', (e) => {
-            const isChecked = $(e.currentTarget).is(':checked');
-            if (isChecked) {
-                this.autoUpdateEnabled = true;
-                this.startAutoUpdate();
-                $('#dspdCountdownTimer').show();
-            } else {
-                this.autoUpdateEnabled = false;
-                this.stopAutoUpdate();
-                $('#dspdCountdownTimer').hide();
+    initAutoUpdate: function() {
+        // Проверяем, что AutoUpdateManager загружен
+        if (typeof AutoUpdateManager === 'undefined') {
+            console.error('AutoUpdateManager не загружен!');
+            return;
+        }
+
+        // Убеждаемся, что чекбокс существует
+        const toggleElement = document.getElementById('dspdAutoUpdateToggle');
+        if (!toggleElement) {
+            console.error('Элемент dspdAutoUpdateToggle не найден!');
+            return;
+        }
+
+        // Создаем экземпляр автообновления
+        this.autoUpdateInstance = AutoUpdateManager.create('dspd', {
+            interval: 30000,
+            onUpdate: () => {
+                if (this.currentSensorId) {
+                    console.log('DSPD: автообновление...');
+                    this.loadData(this.currentDays, true);
+                }
+            },
+            onStart: () => {
+                console.log('DSPD: автообновление запущено');
+            },
+            onStop: () => {
+                console.log('DSPD: автообновление остановлено');
             }
         });
 
-        this.startAutoUpdate();
+        console.log('DSPD: автообновление инициализировано');
     },
 
     createParameterRadios: function() {
-        // Создаем радио-кнопки для каждой группы
+        // Создаем радио-кнопки для каждой группы (только оставшиеся)
         this.createRadioGroup('RoadCondition', this.roadConditionParameters);
         this.createRadioGroup('PrecipitationLayer', this.precipitationLayerParameters);
         this.createRadioGroup('Technical', this.technicalParameters);
-        this.createRadioGroup('Calibration', this.calibrationParameters);
-        this.createRadioGroup('Position', this.positionParameters);
     },
 
     createRadioGroup: function(groupName, parameters) {
@@ -176,27 +173,23 @@ const DSPDCharts = {
 
     updateVisibleParameters: function() {
         // Обновляем видимость для всех групп параметров на основе выбранной радио-кнопки
-        const updateGroup = (groupParams, groupPrefix) => {
+        const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
                 const radioId = `dspd_radio_${p.id}`;
                 p.visible = $(`#${radioId}`).is(':checked');
             });
         };
         
-        updateGroup(this.roadConditionParameters, 'roadcondition');
-        updateGroup(this.precipitationLayerParameters, 'precipitationlayer');
-        updateGroup(this.technicalParameters, 'technical');
-        updateGroup(this.calibrationParameters, 'calibration');
-        updateGroup(this.positionParameters, 'position');
+        updateGroup(this.roadConditionParameters);
+        updateGroup(this.precipitationLayerParameters);
+        updateGroup(this.technicalParameters);
     },
 
     getSelectedParameters: function() {
         const groups = {
             'roadCondition': this.roadConditionParameters,
             'precipitationLayer': this.precipitationLayerParameters,
-            'technical': this.technicalParameters,
-            'calibration': this.calibrationParameters,
-            'position': this.positionParameters
+            'technical': this.technicalParameters
         };
         
         // Возвращаем только выбранный параметр (должен быть один)
@@ -207,49 +200,30 @@ const DSPDCharts = {
         const titles = {
             'roadCondition': 'Состояние дороги',
             'precipitationLayer': 'Осадки на дороге',
-            'technical': 'Технические параметры',
-            'calibration': 'Калибровка и статус',
-            'position': 'Позиционирование'
+            'technical': 'Технические параметры'
         };
         $('#dspdChartTitle').text(`DSPD: ${titles[this.currentTab] || 'Параметры'}`);
     },
 
-    startAutoUpdate: function() {
-        this.stopAutoUpdate();
-        if (!this.autoUpdateEnabled) return;
-
-        let sec = 30;
-        $('#dspdCountdownTimer').text(sec).show();
-
-        this.countdownInterval = setInterval(() => {
-            sec = sec <= 0 ? 30 : sec - 1;
-            $('#dspdCountdownTimer').text(sec);
-        }, 1000);
-
-        this.autoUpdateTimerId = setInterval(() => {
-            if (this.autoUpdateEnabled) this.loadData(this.currentDays, true);
-        }, 30000);
-    },
-
-    stopAutoUpdate: function() {
-        clearInterval(this.autoUpdateTimerId);
-        clearInterval(this.countdownInterval);
-        this.autoUpdateTimerId = this.countdownInterval = null;
-    },
-
-    restartAutoUpdate: function() {
-        if (this.autoUpdateEnabled) this.startAutoUpdate();
-    },
-
     cleanup: function() {
-        this.stopAutoUpdate();
-        this.autoUpdateEnabled = true;
-        $('#dspdAutoUpdateToggle').prop('checked', true);
-        $('#dspdCountdownTimer').show().text('30');
+        console.log('DSPDCharts.cleanup()');
+        
+        // Уничтожаем экземпляр автообновления
+        if (this.autoUpdateInstance) {
+            AutoUpdateManager.destroy('dspd');
+            this.autoUpdateInstance = null;
+        }
 
-        if (this.chart) this.chart.destroy();
-        if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
-        this.chart = this.dateSlider = null;
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        
+        if (this.dateSlider) {
+            try { this.dateSlider.destroy(); } catch(e) {}
+            this.dateSlider = null;
+        }
+        
         this.sliderInitialized = false;
         this.allMeasurements = [];
     },
@@ -274,7 +248,7 @@ const DSPDCharts = {
 
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
-                if (silent && hasNew && this.autoUpdateEnabled) {
+                if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
                     this.showNotification('Получены новые данные DSPD');
                 }
 
@@ -344,22 +318,15 @@ const DSPDCharts = {
                     $('#dspdDateRangeLabel').text(`${s} - ${e}`);
                 });
 
+                this.dateSlider.on('start', () => {
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragStart');
+                });
+
                 this.dateSlider.on('end', values => {
                     this.filterDataByDateRange(parseInt(values[0]), parseInt(values[1]));
-                });
-
-                this.dateSlider.on('start', () => {
-                    if (this.autoUpdateEnabled) {
-                        this.tempAutoUpdateState = this.autoUpdateEnabled;
-                        this.stopAutoUpdate();
-                    }
-                });
-
-                this.dateSlider.on('end', () => {
-                    if (this.tempAutoUpdateState) {
-                        this.startAutoUpdate();
-                        this.tempAutoUpdateState = null;
-                    }
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragEnd');
                 });
 
                 this.sliderInitialized = true;
@@ -597,7 +564,10 @@ const DSPDCharts = {
         }
         const last = m[m.length-1].dataTimestamp;
         $('#dspdLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
-        this.lastUpdateTime = last;
+        
+        if (this.autoUpdateInstance) {
+            this.autoUpdateInstance.updateLastUpdateTime(last);
+        }
     },
 
     showNotification: function(msg) {

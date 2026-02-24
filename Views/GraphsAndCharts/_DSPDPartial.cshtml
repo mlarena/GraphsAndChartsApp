@@ -33,22 +33,17 @@
                         <i class="fas fa-clock text-success"></i>
                         <span id="dspdLastUpdateTime">Загрузка...</span>
                     </div>
-                    <!-- АВТООБНОВЛЕНИЕ -->
-                    <div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" id="dspdAutoUpdateControl">
-                        <div class="form-check form-switch d-inline-block m-0">
-                            <input class="form-check-input bsp-chart-form-check-input" type="checkbox" id="dspdAutoUpdateToggle"
-                                   role="switch" checked>
-                            <label class="form-check-label small fw-normal ms-1" for="dspdAutoUpdateToggle">
-                                <i class="fas fa-sync-alt fa-xs"></i> 30с
-                            </label>
-                        </div>
-                        <span id="dspdCountdownTimer" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
-                    </div>
+                    <!-- АВТООБНОВЛЕНИЕ - используем новый компонент -->
+                    @await Html.PartialAsync("_AutoUpdatePartial", new GraphsAndChartsApp.ViewModels.AutoUpdateViewModel 
+                    { 
+                        Prefix = "dspd", 
+                        Color = "success" 
+                    })
                 </div>
             </div>
         </div>
 
-        <!-- Вкладки -->
+        <!-- Вкладки (только нужные) -->
         <div class="row mb-3">
             <div class="col-md-12">
                 <ul class="nav nav-tabs bsp-chart-nav-tabs" id="dspdTabs" role="tablist">
@@ -65,16 +60,6 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link bsp-chart-nav-link" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button" role="tab">
                             <i class="fas fa-cogs"></i> Технические
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link bsp-chart-nav-link" id="calibration-tab" data-bs-toggle="tab" data-bs-target="#calibration" type="button" role="tab">
-                            <i class="fas fa-check-circle"></i> Калибровка
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link bsp-chart-nav-link" id="position-tab" data-bs-toggle="tab" data-bs-target="#position" type="button" role="tab">
-                            <i class="fas fa-map-pin"></i> Позиция
                         </button>
                     </li>
                 </ul>
@@ -153,38 +138,6 @@
                             </div>
                             <div class="card-body py-2">
                                 <div class="row" id="dspdTechnicalRadios"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Калибровка и статус -->
-                    <div class="tab-pane fade" id="calibration" role="tabpanel">
-                        <div class="card">
-                            <div class="card-header bg-light py-2">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    <h6 class="mb-0">Параметры калибровки и статуса</h6>
-                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
-                                </div>
-                            </div>
-                            <div class="card-body py-2">
-                                <div class="row" id="dspdCalibrationRadios"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Позиция -->
-                    <div class="tab-pane fade" id="position" role="tabpanel">
-                        <div class="card">
-                            <div class="card-header bg-light py-2">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-map-pin text-success me-2"></i>
-                                    <h6 class="mb-0">Параметры позиционирования</h6>
-                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
-                                </div>
-                            </div>
-                            <div class="card-body py-2">
-                                <div class="row" id="dspdPositionRadios"></div>
                             </div>
                         </div>
                     </div>

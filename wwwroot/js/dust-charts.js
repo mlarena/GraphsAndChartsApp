@@ -1,3 +1,5 @@
+// dust-charts.js - Модуль для визуализации данных датчика концентрации пыли
+
 const DUSTCharts = {
     chart: null,
     currentSensorId: null,
@@ -10,30 +12,24 @@ const DUSTCharts = {
     currentDays: 1,
     currentChartType: 'line',
     currentTab: 'pm',
+    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
 
     pmParameters: [
-        { id: 'pm10act', name: 'PM10 акт.', unit: 'мг/м³', color: '#dc3545', property: 'pm10Act', visible: true, order: 1, group: 'pm' },
-        { id: 'pm25act', name: 'PM2.5 акт.', unit: 'мг/м³', color: '#fd7e14', property: 'pm25Act', visible: false, order: 2, group: 'pm' },
-        { id: 'pm1act',  name: 'PM1 акт.',  unit: 'мг/м³', color: '#ffc107', property: 'pm1Act',  visible: false, order: 3, group: 'pm' },
-        { id: 'pm10awg', name: 'PM10 ср.',  unit: 'мг/м³', color: '#20c997', property: 'pm10Awg', visible: false, order: 4, group: 'pm' },
-        { id: 'pm25awg', name: 'PM2.5 ср.', unit: 'мг/м³', color: '#0d6efd', property: 'pm25Awg', visible: false, order: 5, group: 'pm' },
-        { id: 'pm1awg',  name: 'PM1 ср.',  unit: 'мг/м³', color: '#6610f2', property: 'pm1Awg', visible: false, order: 6, group: 'pm' }
+        { id: 'pm10act', name: 'PM10 акт.', unit: 'мг/м³', color: '#dc3545', property: 'pm10Act', visible: true, order: 1, group: 'pm', icon: 'fa-chart-line' },
+        { id: 'pm25act', name: 'PM2.5 акт.', unit: 'мг/м³', color: '#fd7e14', property: 'pm25Act', visible: false, order: 2, group: 'pm', icon: 'fa-chart-line' },
+        { id: 'pm1act',  name: 'PM1 акт.',  unit: 'мг/м³', color: '#ffc107', property: 'pm1Act',  visible: false, order: 3, group: 'pm', icon: 'fa-chart-line' },
+        { id: 'pm10awg', name: 'PM10 ср.',  unit: 'мг/м³', color: '#20c997', property: 'pm10Awg', visible: false, order: 4, group: 'pm', icon: 'fa-chart-line' },
+        { id: 'pm25awg', name: 'PM2.5 ср.', unit: 'мг/м³', color: '#0d6efd', property: 'pm25Awg', visible: false, order: 5, group: 'pm', icon: 'fa-chart-line' },
+        { id: 'pm1awg',  name: 'PM1 ср.',  unit: 'мг/м³', color: '#6610f2', property: 'pm1Awg', visible: false, order: 6, group: 'pm', icon: 'fa-chart-line' }
     ],
 
     technicalParameters: [
-        { id: 'flow',     name: 'Поток пробы',   unit: '',     color: '#17a2b8', property: 'flowProbe',      visible: true, order: 1, group: 'technical' },
-        { id: 'temp',     name: 'Температура',   unit: '°C',   color: '#dc3545', property: 'temperatureProbe',visible: false, order: 2, group: 'technical' },
-        { id: 'humidity', name: 'Влажность',     unit: '%',    color: '#0d6efd', property: 'humidityProbe',   visible: false, order: 3, group: 'technical' },
-        { id: 'laser',    name: 'Статус лазера', unit: '',     color: '#6c757d', property: 'laserStatus',     visible: false, order: 4, group: 'technical' },
-        { id: 'voltage',  name: 'Напряжение',    unit: 'В',    color: '#28a745', property: 'supplyVoltage',   visible: false, order: 5, group: 'technical' }
+        { id: 'flow',     name: 'Поток пробы',   unit: '',     color: '#17a2b8', property: 'flowProbe',      visible: true, order: 1, group: 'technical', icon: 'fa-wind' },
+        { id: 'temp',     name: 'Температура',   unit: '°C',   color: '#dc3545', property: 'temperatureProbe',visible: false, order: 2, group: 'technical', icon: 'fa-thermometer-half' },
+        { id: 'humidity', name: 'Влажность',     unit: '%',    color: '#0d6efd', property: 'humidityProbe',   visible: false, order: 3, group: 'technical', icon: 'fa-tint' },
+        { id: 'laser',    name: 'Статус лазера', unit: '',     color: '#6c757d', property: 'laserStatus',     visible: false, order: 4, group: 'technical', icon: 'fa-sun' },
+        { id: 'voltage',  name: 'Напряжение',    unit: 'В',    color: '#28a745', property: 'supplyVoltage',   visible: false, order: 5, group: 'technical', icon: 'fa-bolt' }
     ],
-
-    autoUpdateEnabled: true,
-    autoUpdateInterval: 30000,
-    autoUpdateTimerId: null,
-    countdownInterval: null,
-    lastUpdateTime: null,
-    tempAutoUpdateState: null,
 
     init: function(sensorId) {
         console.log('DUSTCharts.init()', sensorId);
@@ -41,16 +37,22 @@ const DUSTCharts = {
         moment.locale('ru');
 
         this.createParameterRadios();
+        
+        // Инициализация автообновления через менеджер
+        this.initAutoUpdate();
+        
         this.loadData(1);
 
+        // Обработчик кнопок периода
         $('#dustTimeRangeButtons .btn').off('click').on('click', (e) => {
             const btn = $(e.currentTarget);
             if (btn.hasClass('active')) return;
+
             $('#dustTimeRangeButtons .btn').removeClass('active');
             btn.addClass('active');
             const days = btn.data('days');
             this.currentDays = days;
-            if (this.autoUpdateEnabled) this.restartAutoUpdate();
+
             this.loadData(days);
         });
 
@@ -60,47 +62,73 @@ const DUSTCharts = {
             this.renderChart();
         });
 
+        // Обработчик переключения вкладок
         $('#dustTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
-            this.currentTab = $(e.target).attr('id') === 'pm-tab' ? 'pm' : 'technical';
+            const tabId = $(e.target).attr('id');
+            this.currentTab = tabId === 'pm-tab' ? 'pm' : 'technical';
             this.updateChartTitle();
             this.renderChart();
             this.updateStatistics();
         });
 
+        // Радио-кнопки параметров
         $(document).on('change', '.dust-parameter-radio', () => {
             this.updateVisibleParameters();
             this.renderChart();
             this.updateStatistics();
         });
+    },
 
-        $('#dustAutoUpdateToggle').off('change').on('change', (e) => {
-            const checked = $(e.currentTarget).is(':checked');
-            if (checked) {
-                this.autoUpdateEnabled = true;
-                this.startAutoUpdate();
-                $('#dustCountdownTimer').show();
-            } else {
-                this.autoUpdateEnabled = false;
-                this.stopAutoUpdate();
-                $('#dustCountdownTimer').hide();
+    initAutoUpdate: function() {
+        // Проверяем, что AutoUpdateManager загружен
+        if (typeof AutoUpdateManager === 'undefined') {
+            console.error('AutoUpdateManager не загружен!');
+            return;
+        }
+
+        // Убеждаемся, что чекбокс существует
+        const toggleElement = document.getElementById('dustAutoUpdateToggle');
+        if (!toggleElement) {
+            console.error('Элемент dustAutoUpdateToggle не найден!');
+            return;
+        }
+
+        // Создаем экземпляр автообновления
+        this.autoUpdateInstance = AutoUpdateManager.create('dust', {
+            interval: 30000,
+            onUpdate: () => {
+                if (this.currentSensorId) {
+                    console.log('DUST: автообновление...');
+                    this.loadData(this.currentDays, true);
+                }
+            },
+            onStart: () => {
+                console.log('DUST: автообновление запущено');
+            },
+            onStop: () => {
+                console.log('DUST: автообновление остановлено');
             }
         });
 
-        this.startAutoUpdate();
+        console.log('DUST: автообновление инициализировано');
     },
 
     createParameterRadios: function() {
-        const pm = $('#dustPmRadios');
-        if (pm.length) {
-            pm.empty();
-            this.pmParameters.sort((a,b)=>a.order-b.order).forEach(p => pm.append(this.createRadio(p, 'pm')));
-        }
+        // Создаем радио-кнопки для каждой группы
+        this.createRadioGroup('Pm', this.pmParameters);
+        this.createRadioGroup('Technical', this.technicalParameters);
+    },
 
-        const tech = $('#dustTechnicalRadios');
-        if (tech.length) {
-            tech.empty();
-            this.technicalParameters.sort((a,b)=>a.order-b.order).forEach(p => tech.append(this.createRadio(p, 'technical')));
-        }
+    createRadioGroup: function(groupName, parameters) {
+        const container = $(`#dust${groupName}Radios`);
+        if (!container.length) return;
+
+        container.empty();
+        
+        // Сортируем и добавляем параметры
+        parameters.sort((a, b) => a.order - b.order).forEach(p => {
+            container.append(this.createRadio(p, groupName.toLowerCase()));
+        });
     },
 
     createRadio: function(param, group) {
@@ -118,8 +146,9 @@ const DUSTCharts = {
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="dust_radio_${param.id}">
-                        <span style="display:inline-block;width:12px;height:12px;background-color:${param.color};border-radius:2px;margin-right:4px;"></span>
+                    <label class="form-check-label small" for="dust_radio_${param.id}" title="${param.description || ''}">
+                        <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
+                        <span style="display:inline-block;width:8px;height:8px;background-color:${param.color};border-radius:50%;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
                 </div>
@@ -128,18 +157,26 @@ const DUSTCharts = {
     },
 
     updateVisibleParameters: function() {
-        this.pmParameters.forEach(p => {
-            p.visible = $(`#dust_radio_${p.id}`).is(':checked');
-        });
-        this.technicalParameters.forEach(p => {
-            p.visible = $(`#dust_radio_${p.id}`).is(':checked');
-        });
+        // Обновляем видимость для всех групп параметров
+        const updateGroup = (groupParams) => {
+            groupParams.forEach(p => {
+                const radioId = `dust_radio_${p.id}`;
+                p.visible = $(`#${radioId}`).is(':checked');
+            });
+        };
+        
+        updateGroup(this.pmParameters);
+        updateGroup(this.technicalParameters);
     },
 
     getSelectedParameters: function() {
-        return this.currentTab === 'pm'
-            ? this.pmParameters.filter(p => p.visible)
-            : this.technicalParameters.filter(p => p.visible);
+        const groups = {
+            'pm': this.pmParameters,
+            'technical': this.technicalParameters
+        };
+        
+        // Возвращаем только выбранный параметр (должен быть один)
+        return groups[this.currentTab]?.filter(p => p.visible) || [];
     },
 
     updateChartTitle: function() {
@@ -148,42 +185,25 @@ const DUSTCharts = {
             : 'Технические параметры DUST');
     },
 
-    startAutoUpdate: function() {
-        this.stopAutoUpdate();
-        if (!this.autoUpdateEnabled) return;
-
-        let sec = 30;
-        $('#dustCountdownTimer').text(sec).show();
-
-        this.countdownInterval = setInterval(() => {
-            sec = sec <= 0 ? 30 : sec - 1;
-            $('#dustCountdownTimer').text(sec);
-        }, 1000);
-
-        this.autoUpdateTimerId = setInterval(() => {
-            if (this.autoUpdateEnabled) this.loadData(this.currentDays, true);
-        }, 30000);
-    },
-
-    stopAutoUpdate: function() {
-        clearInterval(this.autoUpdateTimerId);
-        clearInterval(this.countdownInterval);
-        this.autoUpdateTimerId = this.countdownInterval = null;
-    },
-
-    restartAutoUpdate: function() {
-        if (this.autoUpdateEnabled) this.startAutoUpdate();
-    },
-
     cleanup: function() {
-        this.stopAutoUpdate();
-        this.autoUpdateEnabled = true;
-        $('#dustAutoUpdateToggle').prop('checked', true);
-        $('#dustCountdownTimer').show().text('30');
+        console.log('DUSTCharts.cleanup()');
+        
+        // Уничтожаем экземпляр автообновления
+        if (this.autoUpdateInstance) {
+            AutoUpdateManager.destroy('dust');
+            this.autoUpdateInstance = null;
+        }
 
-        if (this.chart) this.chart.destroy();
-        if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
-        this.chart = this.dateSlider = null;
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        
+        if (this.dateSlider) {
+            try { this.dateSlider.destroy(); } catch(e) {}
+            this.dateSlider = null;
+        }
+        
         this.sliderInitialized = false;
         this.allMeasurements = [];
     },
@@ -208,7 +228,7 @@ const DUSTCharts = {
 
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
-                if (silent && hasNew && this.autoUpdateEnabled) {
+                if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
                     this.showNotification('Получены новые данные DUST');
                 }
 
@@ -226,7 +246,10 @@ const DUSTCharts = {
     },
 
     initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') return console.error('noUiSlider не загружен');
+        if (typeof noUiSlider === 'undefined') {
+            console.error('noUiSlider не загружен');
+            return;
+        }
 
         if (!this.allMeasurements || this.allMeasurements.length < 2) {
             $('#dustDateRangeSection').addClass('disabled');
@@ -253,6 +276,7 @@ const DUSTCharts = {
         $('#dustSliderContainer').removeClass('disabled');
 
         if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
+        this.dateSlider = null;
         slider.innerHTML = '';
 
         setTimeout(() => {
@@ -274,20 +298,15 @@ const DUSTCharts = {
                     $('#dustDateRangeLabel').text(`${s} - ${e}`);
                 });
 
-                this.dateSlider.on('end', v => this.filterDataByDateRange(parseInt(v[0]), parseInt(v[1])));
-
                 this.dateSlider.on('start', () => {
-                    if (this.autoUpdateEnabled) {
-                        this.tempAutoUpdateState = this.autoUpdateEnabled;
-                        this.stopAutoUpdate();
-                    }
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragStart');
                 });
 
-                this.dateSlider.on('end', () => {
-                    if (this.tempAutoUpdateState) {
-                        this.startAutoUpdate();
-                        this.tempAutoUpdateState = null;
-                    }
+                this.dateSlider.on('end', v => {
+                    this.filterDataByDateRange(parseInt(v[0]), parseInt(v[1]));
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragEnd');
                 });
 
                 this.sliderInitialized = true;
@@ -349,12 +368,22 @@ const DUSTCharts = {
         const datasets = [];
 
         selected.forEach((p, i) => {
+            // Фильтруем null значения
+            const validData = m
+                .map(x => {
+                    const value = x[p.property];
+                    return {
+                        x: new Date(x.dataTimestamp),
+                        y: value != null ? parseFloat(value) : null
+                    };
+                })
+                .filter(point => point.y !== null);
+
+            if (validData.length === 0) return;
+
             const ds = {
                 label: p.name + (p.unit ? ` (${p.unit})` : ''),
-                data: m.map(x => {
-                    const v = x[p.property];
-                    return v != null ? parseFloat(v) : null;
-                }),
+                data: validData,
                 borderColor: p.color,
                 backgroundColor: this.hexToRgba(p.color, 0.1),
                 borderWidth: 2,
@@ -367,16 +396,10 @@ const DUSTCharts = {
 
             if (this.currentChartType === 'scatter') {
                 ds.type = 'scatter';
-                ds.data = m.map(x => {
-                    const v = x[p.property];
-                    return v != null ? { x: new Date(x.dataTimestamp), y: parseFloat(v) } : null;
-                }).filter(Boolean);
                 ds.backgroundColor = p.color;
                 ds.borderColor = 'transparent';
                 ds.pointRadius = 5;
-            }
-
-            if (this.currentChartType === 'bar') {
+            } else if (this.currentChartType === 'bar') {
                 ds.type = 'bar';
                 ds.barPercentage = 0.8;
                 ds.categoryPercentage = 0.9;
@@ -384,6 +407,26 @@ const DUSTCharts = {
 
             datasets.push(ds);
         });
+
+        if (datasets.length === 0) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет данных для отображения',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const yAxes = {};
         selected.forEach((p, i) => {
@@ -407,17 +450,39 @@ const DUSTCharts = {
                 animation: { duration: 300 },
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                    legend: { 
+                        display: true, 
+                        position: 'top', 
+                        labels: { 
+                            usePointStyle: true, 
+                            boxWidth: 8,
+                            filter: (item) => !item.text.includes('нет данных')
+                        } 
+                    },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        callbacks: { label: ctx => `${ctx.dataset.label || ''}: ${ctx.parsed.y?.toFixed(2) ?? ''}` }
+                        callbacks: {
+                            label: (ctx) => {
+                                const dataset = ctx.dataset;
+                                const label = dataset.label || '';
+                                const value = ctx.parsed.y;
+                                if (value !== null && value !== undefined) {
+                                    return `${label}: ${value.toFixed(2)}`;
+                                }
+                                return `${label}: нет данных`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     x: {
                         type: 'time',
-                        time: { unit: cfg.unit, displayFormats: cfg.displayFormats, tooltipFormat: 'dd.MM.yyyy HH:mm' },
+                        time: { 
+                            unit: cfg.unit, 
+                            displayFormats: cfg.displayFormats, 
+                            tooltipFormat: 'dd.MM.yyyy HH:mm' 
+                        },
                         title: { display: true, text: 'Дата/время' }
                     },
                     ...yAxes
@@ -449,13 +514,15 @@ const DUSTCharts = {
 
             const min = Math.min(...vals);
             const max = Math.max(...vals);
-            const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+            const avg = vals.reduce((a,b) => a + b, 0) / vals.length;
             const cur = vals[vals.length-1];
 
             const col = $(`
                 <div class="col-md-12">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
-                        <div class="small text-muted">${p.name}</div>
+                        <div class="small text-muted">
+                            <i class="fas ${p.icon || 'fa-chart-line'} me-1"></i> ${p.name}
+                        </div>
                         <div class="d-flex justify-content-between mt-1">
                             <span class="small">тек. <strong>${cur.toFixed(2)}</strong></span>
                             <span class="small">мин <strong>${min.toFixed(2)}</strong></span>
@@ -477,7 +544,10 @@ const DUSTCharts = {
         }
         const last = m[m.length-1].dataTimestamp;
         $('#dustLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
-        this.lastUpdateTime = last;
+        
+        if (this.autoUpdateInstance) {
+            this.autoUpdateInstance.updateLastUpdateTime(last);
+        }
     },
 
     showNotification: function(msg) {

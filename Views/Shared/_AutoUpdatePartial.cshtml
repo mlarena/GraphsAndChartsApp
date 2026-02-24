@@ -1,0 +1,27 @@
+@model GraphsAndChartsApp.ViewModels.AutoUpdateViewModel
+
+@{
+    var prefix = Model?.Prefix ?? "default";
+    var containerId = $"{prefix}AutoUpdateControl";
+    var toggleId = $"{prefix}AutoUpdateToggle";
+    var timerId = $"{prefix}CountdownTimer";
+    var color = Model?.Color ?? "secondary";
+}
+
+<div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" 
+     id="@containerId" 
+     data-prefix="@prefix"
+     data-color="@color">
+    <div class="form-check form-switch d-inline-block m-0">
+        <input class="form-check-input bsp-chart-form-check-input" 
+               type="checkbox" 
+               id="@toggleId" 
+               role="switch" 
+               data-auto-update-toggle="true"
+               checked>
+        <label class="form-check-label small fw-normal ms-1" for="@toggleId">
+            <i class="fas fa-sync-alt fa-xs"></i> 30с
+        </label>
+    </div>
+    <span id="@timerId" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
+</div>

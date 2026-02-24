@@ -1,4 +1,4 @@
-// dov-charts.js - Полная версия (с радио-кнопками для выбора типа графика)
+// dov-charts.js - Полная версия с использованием AutoUpdateManager
 
 const DOVCharts = {
     visibilityChart: null,
@@ -13,21 +13,17 @@ const DOVCharts = {
     updateTimeout: null,
     sliderInitialized: false,
     currentDays: 1,
-
-    // Автообновление
-    autoUpdateEnabled: true,
-    autoUpdateInterval: 30000,
-    autoUpdateTimerId: null,
-    countdownInterval: null,
-    lastUpdateTime: null,
-    tempAutoUpdateState: null,
+    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
 
     init: function(sensorId) {
         console.log('DOVCharts.init()', sensorId);
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
-        this.loadData(1); // по умолчанию 24ч после рефакторинга
+        // Инициализация автообновления через менеджер
+        this.initAutoUpdate();
+        
+        this.loadData(1); // по умолчанию 24ч
 
         // Обработчик кнопок периода
         $('#dovTimeRangeButtons .btn').off('click').on('click', (e) => {
@@ -38,10 +34,6 @@ const DOVCharts = {
             btn.addClass('active');
             const days = btn.data('days');
             this.currentDays = days;
-
-            if (this.autoUpdateEnabled) {
-                this.restartAutoUpdate();
-            }
 
             this.loadData(days);
         });
@@ -59,74 +51,52 @@ const DOVCharts = {
             }
         });
 
-        // Чекбокс автообновления
-        $('#autoUpdateToggle').off('change').on('change', (e) => {
-            const isChecked = $(e.currentTarget).is(':checked');
+        this.toggleChart();
+        this.updateChartTitle();
+    },
 
-            if (isChecked) {
-                this.autoUpdateEnabled = true;
-                this.startAutoUpdate();
-                $('#countdownTimer').show();
-                console.log('✅ Автообновление ВКЛЮЧЕНО');
-            } else {
-                this.autoUpdateEnabled = false;
-                this.stopAutoUpdate();
-                $('#countdownTimer').hide();
-                console.log('❌ Автообновление ОТКЛЮЧЕНО');
+    initAutoUpdate: function() {
+        // Проверяем, что AutoUpdateManager загружен
+        if (typeof AutoUpdateManager === 'undefined') {
+            console.error('AutoUpdateManager не загружен!');
+            return;
+        }
+
+        // Убеждаемся, что чекбокс существует
+        const toggleElement = document.getElementById('dovAutoUpdateToggle');
+        if (!toggleElement) {
+            console.error('Элемент dovAutoUpdateToggle не найден!');
+            return;
+        }
+
+        // Создаем экземпляр автообновления
+        this.autoUpdateInstance = AutoUpdateManager.create('dov', {
+            interval: 30000,
+            onUpdate: () => {
+                if (this.currentSensorId) {
+                    console.log('DOV: автообновление...');
+                    this.loadData(this.currentDays, true);
+                }
+            },
+            onStart: () => {
+                console.log('DOV: автообновление запущено');
+            },
+            onStop: () => {
+                console.log('DOV: автообновление остановлено');
             }
         });
 
-        this.toggleChart();
-        this.updateChartTitle();
-        this.startAutoUpdate();
-    },
-
-    startAutoUpdate: function() {
-        this.stopAutoUpdate();
-
-        if (!this.autoUpdateEnabled) return;
-
-        console.log('🔄 Запуск автообновления DOV (30 сек)');
-
-        let secondsLeft = 30;
-        $('#countdownTimer').text(secondsLeft).show();
-
-        this.countdownInterval = setInterval(() => {
-            secondsLeft--;
-            if (secondsLeft <= 0) secondsLeft = 30;
-            $('#countdownTimer').text(secondsLeft);
-        }, 1000);
-
-        this.autoUpdateTimerId = setInterval(() => {
-            if (this.autoUpdateEnabled && this.currentSensorId) {
-                console.log('Автообновление DOV: загрузка...');
-                this.loadData(this.currentDays, true);
-            }
-        }, this.autoUpdateInterval);
-    },
-
-    stopAutoUpdate: function() {
-        if (this.autoUpdateTimerId) {
-            clearInterval(this.autoUpdateTimerId);
-            this.autoUpdateTimerId = null;
-        }
-        if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-            this.countdownInterval = null;
-        }
-    },
-
-    restartAutoUpdate: function() {
-        if (this.autoUpdateEnabled) this.startAutoUpdate();
+        console.log('DOV: автообновление инициализировано');
     },
 
     cleanup: function() {
         console.log('DOVCharts.cleanup()');
-        this.stopAutoUpdate();
-        this.autoUpdateEnabled = true;
-
-        $('#autoUpdateToggle').prop('checked', true);
-        $('#countdownTimer').show().text('30');
+        
+        // Уничтожаем экземпляр автообновления
+        if (this.autoUpdateInstance) {
+            AutoUpdateManager.destroy('dov');
+            this.autoUpdateInstance = null;
+        }
 
         if (this.visibilityChart) {
             this.visibilityChart.destroy();
@@ -205,24 +175,17 @@ const DOVCharts = {
                     $('#dovDateRangeLabel').text(`${start} - ${end}`);
                 });
 
+                this.dateSlider.on('start', () => {
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragStart');
+                });
+
                 this.dateSlider.on('end', (values) => {
                     const startTime = parseInt(values[0]);
                     const endTime   = parseInt(values[1]);
                     this.filterDataByDateRange(startTime, endTime);
-                });
-
-                this.dateSlider.on('start', () => {
-                    if (this.autoUpdateEnabled) {
-                        this.tempAutoUpdateState = this.autoUpdateEnabled;
-                        this.stopAutoUpdate();
-                    }
-                });
-
-                this.dateSlider.on('end', () => {
-                    if (this.tempAutoUpdateState) {
-                        this.startAutoUpdate();
-                        this.tempAutoUpdateState = null;
-                    }
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragEnd');
                 });
 
                 this.sliderInitialized = true;
@@ -236,7 +199,7 @@ const DOVCharts = {
         if (this.isLoading && this.xhr) this.xhr.abort();
         this.isLoading = true;
 
-        if (!silent) $('#chartLoadingIndicator').fadeIn(150);
+        if (!silent) $('#dovChartLoadingIndicator').fadeIn(150);
 
         this.xhr = $.ajax({
             url: '/GraphsAndCharts/GetDOVData',
@@ -259,18 +222,18 @@ const DOVCharts = {
 
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
-                if (silent && hasNew && this.autoUpdateEnabled) {
+                if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
                     this.showNotification('Получены новые данные');
                 }
 
                 this.isLoading = false;
-                if (!silent) $('#chartLoadingIndicator').fadeOut(150);
+                if (!silent) $('#dovChartLoadingIndicator').fadeOut(150);
                 this.xhr = null;
             },
             error: (xhr, status, error) => {
                 if (status !== 'abort') console.error('Ошибка загрузки DOV:', error);
                 this.isLoading = false;
-                if (!silent) $('#chartLoadingIndicator').fadeOut(150);
+                if (!silent) $('#dovChartLoadingIndicator').fadeOut(150);
                 this.xhr = null;
             }
         });
@@ -303,16 +266,16 @@ const DOVCharts = {
 
     toggleChart: function() {
         if (this.currentChartType === 'visibility') {
-            $('#visibilityChart').show();
-            $('#brightnessChart').hide();
+            $('#dovVisibilityChart').show();
+            $('#dovBrightnessChart').hide();
         } else {
-            $('#visibilityChart').hide();
-            $('#brightnessChart').show();
+            $('#dovVisibilityChart').hide();
+            $('#dovBrightnessChart').show();
         }
     },
 
     updateChartTitle: function() {
-        $('#chartTitle').text(
+        $('#dovChartTitle').text(
             this.currentChartType === 'visibility'
                 ? 'Дальность видимости (метры)'
                 : 'Освещенность (bright_flag)'
@@ -330,7 +293,7 @@ const DOVCharts = {
         this.updateTimeScaleLabel(timeRange);
         const cfg = this.getTimeConfig(timeRange);
 
-        const ctx = document.getElementById('visibilityChart')?.getContext('2d');
+        const ctx = document.getElementById('dovVisibilityChart')?.getContext('2d');
         if (!ctx) return;
 
         if (this.visibilityChart) this.visibilityChart.destroy();
@@ -394,7 +357,7 @@ const DOVCharts = {
         this.updateTimeScaleLabel(timeRange);
         const cfg = this.getTimeConfig(timeRange);
 
-        const ctx = document.getElementById('brightnessChart')?.getContext('2d');
+        const ctx = document.getElementById('dovBrightnessChart')?.getContext('2d');
         if (!ctx) return;
 
         if (this.brightnessChart) this.brightnessChart.destroy();
@@ -469,34 +432,37 @@ const DOVCharts = {
 
     updateTimeScaleLabel: function(range) {
         const labels = { hour: 'часы', hour6: '6 часов', day: 'дни', week: 'недели', month: 'месяцы' };
-        $('#timeScaleLabel').text(labels[range] || 'авто');
+        $('#dovTimeScaleLabel').text(labels[range] || 'авто');
     },
 
     updateStatistics: function(data) {
         const m = data.measurements || [];
         if (m.length === 0) {
-            $('#minVisibility, #maxVisibility, #avgVisibility').text('-');
-            $('#totalMeasurements').text('0');
+            $('#dovMinVisibility, #dovMaxVisibility, #dovAvgVisibility').text('-');
+            $('#dovTotalMeasurements').text('0');
             return;
         }
         const vals = m.map(x => parseFloat(x.visibleRange)).filter(v => !isNaN(v));
         if (!vals.length) return;
 
-        $('#minVisibility').text(Math.min(...vals).toFixed(1));
-        $('#maxVisibility').text(Math.max(...vals).toFixed(1));
-        $('#avgVisibility').text((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
-        $('#totalMeasurements').text(m.length);
+        $('#dovMinVisibility').text(Math.min(...vals).toFixed(1));
+        $('#dovMaxVisibility').text(Math.max(...vals).toFixed(1));
+        $('#dovAvgVisibility').text((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
+        $('#dovTotalMeasurements').text(m.length);
     },
 
     updateLastUpdateTime: function(data) {
         const m = data.measurements || [];
         if (m.length === 0) {
-            $('#lastUpdateTime').text('Нет данных');
+            $('#dovLastUpdateTime').text('Нет данных');
             return;
         }
         const last = m[m.length-1].dataTimestamp;
-        $('#lastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
-        this.lastUpdateTime = last;
+        $('#dovLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
+        
+        if (this.autoUpdateInstance) {
+            this.autoUpdateInstance.updateLastUpdateTime(last);
+        }
     }
 };
 

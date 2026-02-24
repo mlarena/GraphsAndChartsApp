@@ -1,3 +1,5 @@
+// mueks-charts.js - Модуль для визуализации данных модуля управления электроснабжением
+
 const MUEKSCharts = {
     chart: null,
     currentSensorId: null,
@@ -7,9 +9,10 @@ const MUEKSCharts = {
     maxDate: null,
     isLoading: false,
     sliderInitialized: false,
-    currentDays: 1,
+    currentDays: 7, // по умолчанию 7 дней для MUEKS
     currentChartType: 'line',
     currentTab: 'voltage',
+    autoUpdateInstance: null, // ссылка на экземпляр AutoUpdateManager
 
     voltageParameters: [
         { id: 'voltageIn12b', name: 'Напряжение вх. 12В', unit: 'В', color: '#dc3545', property: 'voltagePowerIn12b', visible: true, order: 1, group: 'voltage', icon: 'fa-bolt' },
@@ -30,8 +33,8 @@ const MUEKSCharts = {
 
     statusParameters: [
         { id: 'temperature', name: 'Температура',   unit: '°C', color: '#28a745', property: 'temperatureBox', visible: true,  order: 1, group: 'status', icon: 'fa-thermometer-half' },
-        { id: 'sensor220b',  name: 'Датчик 220В',   unit: '',   color: '#dc3545', property: 'sensor220b',     visible: false,  order: 2, group: 'status', icon: 'fa-plug' },
-        { id: 'doorStatus',  name: 'Статус двери',  unit: '',   color: '#ffc107', property: 'doorStatus',      visible: false,  order: 3, group: 'status', icon: 'fa-door-open' }
+        { id: 'sensor220b',  name: 'Датчик 220В',   unit: '',   color: '#dc3545', property: 'sensor220b',     visible: false, order: 2, group: 'status', icon: 'fa-plug' },
+        { id: 'doorStatus',  name: 'Статус двери',  unit: '',   color: '#ffc107', property: 'doorStatus',      visible: false, order: 3, group: 'status', icon: 'fa-door-open' }
     ],
 
     tdsParameters: [
@@ -41,29 +44,28 @@ const MUEKSCharts = {
         { id: 'tkosaT3',  name: 'TKOСА T3',  unit: '', color: '#e83e8c', property: 'tkosaT3',  visible: true, order: 4, group: 'tds', icon: 'fa-microchip', isText: true }
     ],
 
-    autoUpdateEnabled: true,
-    autoUpdateInterval: 30000,
-    autoUpdateTimerId: null,
-    countdownInterval: null,
-    lastUpdateTime: null,
-    tempAutoUpdateState: null,
-
     init: function(sensorId) {
         console.log('MUEKSCharts.init()', sensorId);
         this.currentSensorId = sensorId;
         moment.locale('ru');
 
         this.createAllRadios();
-        this.loadData(1);
+        
+        // Инициализация автообновления через менеджер
+        this.initAutoUpdate();
+        
+        this.loadData(this.currentDays);
 
+        // Обработчик кнопок периода
         $('#mueksTimeRangeButtons .btn').off('click').on('click', (e) => {
             const btn = $(e.currentTarget);
             if (btn.hasClass('active')) return;
+
             $('#mueksTimeRangeButtons .btn').removeClass('active');
             btn.addClass('active');
             const days = btn.data('days');
             this.currentDays = days;
-            if (this.autoUpdateEnabled) this.restartAutoUpdate();
+
             this.loadData(days);
         });
 
@@ -73,6 +75,7 @@ const MUEKSCharts = {
             if (this.currentTab !== 'tds') this.renderChart();
         });
 
+        // Обработчик переключения вкладок
         $('#mueksTabs button').off('shown.bs.tab').on('shown.bs.tab', (e) => {
             const tabId = $(e.target).attr('id');
             this.currentTab = tabId.replace('-tab', '');
@@ -88,6 +91,7 @@ const MUEKSCharts = {
             }
         });
 
+        // Обработчик радио-кнопок параметров
         $(document).on('change', '.mueks-parameter-radio', () => {
             this.updateVisibleParameters();
             if (this.currentTab !== 'tds') {
@@ -95,21 +99,40 @@ const MUEKSCharts = {
                 this.updateStatistics();
             }
         });
+    },
 
-        $('#mueksAutoUpdateToggle').off('change').on('change', (e) => {
-            const checked = $(e.currentTarget).is(':checked');
-            if (checked) {
-                this.autoUpdateEnabled = true;
-                this.startAutoUpdate();
-                $('#mueksCountdownTimer').show();
-            } else {
-                this.autoUpdateEnabled = false;
-                this.stopAutoUpdate();
-                $('#mueksCountdownTimer').hide();
+    initAutoUpdate: function() {
+        // Проверяем, что AutoUpdateManager загружен
+        if (typeof AutoUpdateManager === 'undefined') {
+            console.error('AutoUpdateManager не загружен!');
+            return;
+        }
+
+        // Убеждаемся, что чекбокс существует
+        const toggleElement = document.getElementById('mueksAutoUpdateToggle');
+        if (!toggleElement) {
+            console.error('Элемент mueksAutoUpdateToggle не найден!');
+            return;
+        }
+
+        // Создаем экземпляр автообновления
+        this.autoUpdateInstance = AutoUpdateManager.create('mueks', {
+            interval: 30000,
+            onUpdate: () => {
+                if (this.currentSensorId) {
+                    console.log('MUEKS: автообновление...');
+                    this.loadData(this.currentDays, true);
+                }
+            },
+            onStart: () => {
+                console.log('MUEKS: автообновление запущено');
+            },
+            onStop: () => {
+                console.log('MUEKS: автообновление остановлено');
             }
         });
 
-        this.startAutoUpdate();
+        console.log('MUEKS: автообновление инициализировано');
     },
 
     createAllRadios: function() {
@@ -146,9 +169,9 @@ const MUEKSCharts = {
                            data-group="${group}"
                            data-property="${param.property}"
                            ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="mueks_radio_${param.id}">
-                        <span style="display:inline-block;width:12px;height:12px;background-color:${param.color};border-radius:2px;margin-right:4px;"></span>
-                        <i class="fas ${param.icon} fa-xs text-muted me-1"></i>
+                    <label class="form-check-label small" for="mueks_radio_${param.id}" title="${param.description || ''}">
+                        <i class="fas ${param.icon} fa-xs text-muted me-1" style="color:${param.color};"></i>
+                        <span style="display:inline-block;width:8px;height:8px;background-color:${param.color};border-radius:50%;margin-right:4px;"></span>
                         ${param.name} ${param.unit ? `(${param.unit})` : ''}
                     </label>
                 </div>
@@ -221,42 +244,25 @@ const MUEKSCharts = {
         container.html(html);
     },
 
-    startAutoUpdate: function() {
-        this.stopAutoUpdate();
-        if (!this.autoUpdateEnabled) return;
-
-        let sec = 30;
-        $('#mueksCountdownTimer').text(sec).show();
-
-        this.countdownInterval = setInterval(() => {
-            sec = sec <= 0 ? 30 : sec - 1;
-            $('#mueksCountdownTimer').text(sec);
-        }, 1000);
-
-        this.autoUpdateTimerId = setInterval(() => {
-            if (this.autoUpdateEnabled) this.loadData(this.currentDays, true);
-        }, 30000);
-    },
-
-    stopAutoUpdate: function() {
-        clearInterval(this.autoUpdateTimerId);
-        clearInterval(this.countdownInterval);
-        this.autoUpdateTimerId = this.countdownInterval = null;
-    },
-
-    restartAutoUpdate: function() {
-        if (this.autoUpdateEnabled) this.startAutoUpdate();
-    },
-
     cleanup: function() {
-        this.stopAutoUpdate();
-        this.autoUpdateEnabled = true;
-        $('#mueksAutoUpdateToggle').prop('checked', true);
-        $('#mueksCountdownTimer').show().text('30');
+        console.log('MUEKSCharts.cleanup()');
+        
+        // Уничтожаем экземпляр автообновления
+        if (this.autoUpdateInstance) {
+            AutoUpdateManager.destroy('mueks');
+            this.autoUpdateInstance = null;
+        }
 
-        if (this.chart) this.chart.destroy();
-        if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
-        this.chart = this.dateSlider = null;
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        
+        if (this.dateSlider) {
+            try { this.dateSlider.destroy(); } catch(e) {}
+            this.dateSlider = null;
+        }
+        
         this.sliderInitialized = false;
         this.allMeasurements = [];
     },
@@ -286,7 +292,7 @@ const MUEKSCharts = {
 
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
-                if (silent && hasNew && this.autoUpdateEnabled) {
+                if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
                     this.showNotification('Получены новые данные MUEKS');
                 }
 
@@ -304,7 +310,10 @@ const MUEKSCharts = {
     },
 
     initDateRangeSlider: function() {
-        if (typeof noUiSlider === 'undefined') return console.error('noUiSlider не загружен');
+        if (typeof noUiSlider === 'undefined') {
+            console.error('noUiSlider не загружен');
+            return;
+        }
 
         if (!this.allMeasurements || this.allMeasurements.length < 2) {
             $('#mueksDateRangeSection').addClass('disabled');
@@ -331,6 +340,7 @@ const MUEKSCharts = {
         $('#mueksSliderContainer').removeClass('disabled');
 
         if (this.dateSlider) try { this.dateSlider.destroy(); } catch(e) {}
+        this.dateSlider = null;
         slider.innerHTML = '';
 
         setTimeout(() => {
@@ -352,20 +362,15 @@ const MUEKSCharts = {
                     $('#mueksDateRangeLabel').text(`${s} - ${e}`);
                 });
 
-                this.dateSlider.on('end', v => this.filterDataByDateRange(parseInt(v[0]), parseInt(v[1])));
-
                 this.dateSlider.on('start', () => {
-                    if (this.autoUpdateEnabled) {
-                        this.tempAutoUpdateState = this.autoUpdateEnabled;
-                        this.stopAutoUpdate();
-                    }
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragStart');
                 });
 
-                this.dateSlider.on('end', () => {
-                    if (this.tempAutoUpdateState) {
-                        this.startAutoUpdate();
-                        this.tempAutoUpdateState = null;
-                    }
+                this.dateSlider.on('end', v => {
+                    this.filterDataByDateRange(parseInt(v[0]), parseInt(v[1]));
+                    // Генерируем событие для AutoUpdateManager
+                    $(document).trigger('sliderDragEnd');
                 });
 
                 this.sliderInitialized = true;
@@ -433,12 +438,22 @@ const MUEKSCharts = {
         const datasets = [];
 
         selected.forEach((p, i) => {
+            // Фильтруем null значения
+            const validData = m
+                .map(x => {
+                    const value = x[p.property];
+                    return {
+                        x: new Date(x.dataTimestamp),
+                        y: value != null ? parseFloat(value) : null
+                    };
+                })
+                .filter(point => point.y !== null);
+
+            if (validData.length === 0) return;
+
             const ds = {
                 label: p.name + (p.unit ? ` (${p.unit})` : ''),
-                data: m.map(x => {
-                    const v = x[p.property];
-                    return v != null ? parseFloat(v) : null;
-                }),
+                data: validData,
                 borderColor: p.color,
                 backgroundColor: this.hexToRgba(p.color, 0.1),
                 borderWidth: 2,
@@ -451,16 +466,10 @@ const MUEKSCharts = {
 
             if (this.currentChartType === 'scatter') {
                 ds.type = 'scatter';
-                ds.data = m.map(x => {
-                    const v = x[p.property];
-                    return v != null ? { x: new Date(x.dataTimestamp), y: parseFloat(v) } : null;
-                }).filter(Boolean);
                 ds.backgroundColor = p.color;
                 ds.borderColor = 'transparent';
                 ds.pointRadius = 5;
-            }
-
-            if (this.currentChartType === 'bar') {
+            } else if (this.currentChartType === 'bar') {
                 ds.type = 'bar';
                 ds.barPercentage = 0.8;
                 ds.categoryPercentage = 0.9;
@@ -468,6 +477,26 @@ const MUEKSCharts = {
 
             datasets.push(ds);
         });
+
+        if (datasets.length === 0) {
+            this.chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Нет данных для отображения',
+                            color: '#666',
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
 
         const yAxes = {};
         selected.forEach((p, i) => {
@@ -491,17 +520,39 @@ const MUEKSCharts = {
                 animation: { duration: 300 },
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                    legend: { 
+                        display: true, 
+                        position: 'top', 
+                        labels: { 
+                            usePointStyle: true, 
+                            boxWidth: 8,
+                            filter: (item) => !item.text.includes('нет данных')
+                        } 
+                    },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        callbacks: { label: ctx => `${ctx.dataset.label || ''}: ${ctx.parsed.y?.toFixed(2) ?? ''}` }
+                        callbacks: {
+                            label: (ctx) => {
+                                const dataset = ctx.dataset;
+                                const label = dataset.label || '';
+                                const value = ctx.parsed.y;
+                                if (value !== null && value !== undefined) {
+                                    return `${label}: ${value.toFixed(2)}`;
+                                }
+                                return `${label}: нет данных`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     x: {
                         type: 'time',
-                        time: { unit: cfg.unit, displayFormats: cfg.displayFormats, tooltipFormat: 'dd.MM.yyyy HH:mm' },
+                        time: { 
+                            unit: cfg.unit, 
+                            displayFormats: cfg.displayFormats, 
+                            tooltipFormat: 'dd.MM.yyyy HH:mm' 
+                        },
                         title: { display: true, text: 'Дата/время' }
                     },
                     ...yAxes
@@ -533,13 +584,13 @@ const MUEKSCharts = {
 
             const min = Math.min(...vals);
             const max = Math.max(...vals);
-            const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+            const avg = vals.reduce((a,b) => a + b, 0) / vals.length;
             const cur = vals[vals.length-1];
 
             const col = $(`
                 <div class="col-md-12">
                     <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
-                        <div class="small text-muted"><i class="fas ${p.icon} fa-xs me-1"></i>${p.name}</div>
+                        <div class="small text-muted"><i class="fas ${p.icon} fa-xs me-1" style="color:${p.color};"></i>${p.name}</div>
                         <div class="d-flex justify-content-between mt-1">
                             <span class="small">тек. <strong>${cur.toFixed(2)}</strong></span>
                             <span class="small">мин <strong>${min.toFixed(2)}</strong></span>
@@ -561,7 +612,10 @@ const MUEKSCharts = {
         }
         const last = m[m.length-1].dataTimestamp;
         $('#mueksLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
-        this.lastUpdateTime = last;
+        
+        if (this.autoUpdateInstance) {
+            this.autoUpdateInstance.updateLastUpdateTime(last);
+        }
     },
 
     showNotification: function(msg) {

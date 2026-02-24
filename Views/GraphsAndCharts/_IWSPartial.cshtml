@@ -24,20 +24,18 @@
                     <div><i class="fas fa-map-marker-alt text-success"></i> <span class="fw-bold">@Model.EndPointsName</span></div>
                     <div><i class="fas fa-building text-success"></i> <span>@Model.MonitoringPostName</span></div>
                     <div><i class="fas fa-clock text-success"></i> <span id="iwsLastUpdateTime">Загрузка...</span></div>
-                    <div class="d-flex align-items-center ms-3 bsp-chart-auto-update-control" id="iwsAutoUpdateControl">
-                        <div class="form-check form-switch d-inline-block m-0">
-                            <input class="form-check-input bsp-chart-form-check-input" type="checkbox" id="iwsAutoUpdateToggle" role="switch" checked>
-                            <label class="form-check-label small fw-normal ms-1" for="iwsAutoUpdateToggle">
-                                <i class="fas fa-sync-alt fa-xs"></i> 30с
-                            </label>
-                        </div>
-                        <span id="iwsCountdownTimer" class="badge bg-secondary ms-2 bsp-chart-countdown-timer">30</span>
-                    </div>
+                    
+                    <!-- АВТООБНОВЛЕНИЕ - используем новый компонент -->
+                    @await Html.PartialAsync("_AutoUpdatePartial", new GraphsAndChartsApp.ViewModels.AutoUpdateViewModel 
+                    { 
+                        Prefix = "iws", 
+                        Color = "success" 
+                    })
                 </div>
             </div>
         </div>
 
-        <!-- Вкладки -->
+        <!-- Вкладки (без позиции) -->
         <div class="row mb-3">
             <div class="col-md-12">
                 <ul class="nav nav-tabs bsp-chart-nav-tabs" id="iwsTabs" role="tablist">
@@ -59,11 +57,6 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="pressure-tab" data-bs-toggle="tab" data-bs-target="#pressure" type="button" role="tab">
                             <i class="fas fa-thermometer-half"></i> Давление
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link bsp-chart-nav-link bsp-chart-iws-tab" id="position-tab" data-bs-toggle="tab" data-bs-target="#position" type="button" role="tab">
-                            <i class="fas fa-map-pin"></i> Позиция
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -163,22 +156,6 @@
                             </div>
                             <div class="card-body py-2">
                                 <div class="row" id="iwsPressureRadios"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Позиция -->
-                    <div class="tab-pane fade" id="position" role="tabpanel">
-                        <div class="card">
-                            <div class="card-header bg-light py-2">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-map-pin text-success me-2"></i>
-                                    <h6 class="mb-0">Параметры позиционирования</h6>
-                                    <span class="ms-auto text-muted small">(выберите один параметр)</span>
-                                </div>
-                            </div>
-                            <div class="card-body py-2">
-                                <div class="row" id="iwsPositionRadios"></div>
                             </div>
                         </div>
                     </div>
