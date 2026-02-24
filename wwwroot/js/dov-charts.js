@@ -1,5 +1,4 @@
 // dov-charts.js - Модуль для визуализации данных датчика оптической видимости
-// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const DOVCharts = {
     visibilityChart: null,
@@ -78,18 +77,15 @@ const DOVCharts = {
     },
 
     initDateRangeSlider: function() {
-        // Проверяем наличие DateRangeSlider
         if (typeof DateRangeSlider === 'undefined') {
             console.error('DateRangeSlider не загружен!');
             return;
         }
 
-        // Создаем или получаем экземпляр слайдера
         let slider = DateRangeSlider.get('dov');
         if (!slider) {
             slider = DateRangeSlider.create('dov', {
                 onRangeChange: (filteredData) => {
-                    // Отрисовываем график с отфильтрованными данными
                     if (this.currentChartType === 'visibility') {
                         this.renderVisibilityChart({ measurements: filteredData });
                     } else {
@@ -100,21 +96,16 @@ const DOVCharts = {
             });
         }
 
-        // Инициализируем слайдер с текущими данными
         DateRangeSlider.initSlider('dov', this.allMeasurements);
     },
 
     cleanup: function() {
         console.log('DOVCharts.cleanup()');
         
-        // Уничтожаем экземпляр автообновления
         if (this.autoUpdateInstance) {
             AutoUpdateManager.destroy('dov');
             this.autoUpdateInstance = null;
         }
-
-        // Уничтожаем слайдер (DateRangeSlider сам управляет своими экземплярами)
-        // Не нужно вызывать destroy здесь, так как DateRangeSlider слушает событие sensorChanged
 
         if (this.visibilityChart) {
             this.visibilityChart.destroy();
@@ -153,11 +144,10 @@ const DOVCharts = {
                 this.updateStatistics(data);
                 this.updateLastUpdateTime(data);
 
-                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
-                    this.showNotification('Получены новые данные');
+                    ChartUtils.showNotification('Получены новые данные DOV', 'info');
                 }
 
                 this.isLoading = false;
@@ -171,17 +161,6 @@ const DOVCharts = {
                 this.xhr = null;
             }
         });
-    },
-
-    showNotification: function(message) {
-        const $n = $(`
-            <div class="alert alert-info alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index:9999;" role="alert">
-                <i class="fas fa-info-circle"></i> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append($n);
-        setTimeout(() => $n.alert('close'), 3000);
     },
 
     toggleChart: function() {
@@ -203,15 +182,15 @@ const DOVCharts = {
     },
 
     renderVisibilityChart: function(data) {
-        const m = data.measurements || [];
-        if (!m.length) return;
+        const measurements = data.measurements || [];
+        if (!measurements.length) return;
 
-        const timestamps = m.map(x => new Date(x.dataTimestamp));
-        const values = m.map(x => parseFloat(x.visibleRange));
+        const timestamps = measurements.map(x => new Date(x.dataTimestamp));
+        const values = measurements.map(x => parseFloat(x.visibleRange));
 
-        const timeRange = this.getTimeRange(timestamps);
-        this.updateTimeScaleLabel(timeRange);
-        const cfg = this.getTimeConfig(timeRange);
+        const timeRange = ChartUtils.getTimeRange(timestamps);
+        ChartUtils.updateTimeScaleLabel('dov', timeRange);
+        const cfg = ChartUtils.getTimeConfig(timeRange);
 
         const ctx = document.getElementById('dovVisibilityChart')?.getContext('2d');
         if (!ctx) return;
@@ -258,11 +237,11 @@ const DOVCharts = {
     },
 
     renderBrightnessChart: function(data) {
-        const m = data.measurements || [];
-        if (!m.length) return;
+        const measurements = data.measurements || [];
+        if (!measurements.length) return;
 
-        const timestamps = m.map(x => new Date(x.dataTimestamp));
-        const flags = m.map(x => x.brightFlag);
+        const timestamps = measurements.map(x => new Date(x.dataTimestamp));
+        const flags = measurements.map(x => x.brightFlag);
 
         const colors = flags.map(f => {
             switch(f) {
@@ -273,9 +252,9 @@ const DOVCharts = {
             }
         });
 
-        const timeRange = this.getTimeRange(timestamps);
-        this.updateTimeScaleLabel(timeRange);
-        const cfg = this.getTimeConfig(timeRange);
+        const timeRange = ChartUtils.getTimeRange(timestamps);
+        ChartUtils.updateTimeScaleLabel('dov', timeRange);
+        const cfg = ChartUtils.getTimeConfig(timeRange);
 
         const ctx = document.getElementById('dovBrightnessChart')?.getContext('2d');
         if (!ctx) return;
@@ -287,7 +266,7 @@ const DOVCharts = {
             data: {
                 datasets: [{
                     label: 'Флаг яркости',
-                    data: m.map(x => ({ x: new Date(x.dataTimestamp), y: x.brightFlag })),
+                    data: measurements.map(x => ({ x: new Date(x.dataTimestamp), y: x.brightFlag })),
                     backgroundColor: colors,
                     pointRadius: 6,
                     pointHoverRadius: 10
@@ -329,55 +308,34 @@ const DOVCharts = {
         });
     },
 
-    getTimeRange: function(timestamps) {
-        if (timestamps.length < 2) return 'day';
-        const diffHours = (Math.max(...timestamps.map(d => d.getTime())) - Math.min(...timestamps.map(d => d.getTime()))) / 3600000;
-        if (diffHours <= 24) return 'hour';
-        if (diffHours <= 72) return 'hour6';
-        if (diffHours <= 168) return 'day';
-        if (diffHours <= 720) return 'week';
-        return 'month';
-    },
-
-    getTimeConfig: function(range) {
-        const c = {
-            hour:    { unit: 'hour',   displayFormats: { hour:   'HH:mm' } },
-            hour6:   { unit: 'hour',   displayFormats: { hour:   'HH:mm' } },
-            day:     { unit: 'day',    displayFormats: { day:    'dd.MM' } },
-            week:    { unit: 'week',   displayFormats: { week:   'dd.MM' } },
-            month:   { unit: 'month',  displayFormats: { month:  'MMM yyyy' } }
-        };
-        return c[range] || c.day;
-    },
-
-    updateTimeScaleLabel: function(range) {
-        const labels = { hour: 'часы', hour6: '6 часов', day: 'дни', week: 'недели', month: 'месяцы' };
-        $('#dovTimeScaleLabel').text(labels[range] || 'авто');
-    },
-
     updateStatistics: function(data) {
-        const m = data.measurements || [];
-        if (m.length === 0) {
+        const measurements = data.measurements || [];
+        if (measurements.length === 0) {
             $('#dovMinVisibility, #dovMaxVisibility, #dovAvgVisibility').text('-');
             $('#dovTotalMeasurements').text('0');
             return;
         }
-        const vals = m.map(x => parseFloat(x.visibleRange)).filter(v => !isNaN(v));
-        if (!vals.length) return;
+        
+        const values = measurements
+            .map(x => parseFloat(x.visibleRange))
+            .filter(v => !isNaN(v));
+            
+        if (!values.length) return;
 
-        $('#dovMinVisibility').text(Math.min(...vals).toFixed(1));
-        $('#dovMaxVisibility').text(Math.max(...vals).toFixed(1));
-        $('#dovAvgVisibility').text((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
-        $('#dovTotalMeasurements').text(m.length);
+        $('#dovMinVisibility').text(Math.min(...values).toFixed(1));
+        $('#dovMaxVisibility').text(Math.max(...values).toFixed(1));
+        $('#dovAvgVisibility').text((values.reduce((a,b)=>a+b,0)/values.length).toFixed(1));
+        $('#dovTotalMeasurements').text(measurements.length);
     },
 
     updateLastUpdateTime: function(data) {
-        const m = data.measurements || [];
-        if (m.length === 0) {
+        const measurements = data.measurements || [];
+        if (measurements.length === 0) {
             $('#dovLastUpdateTime').text('Нет данных');
             return;
         }
-        const last = m[m.length-1].dataTimestamp;
+        
+        const last = measurements[measurements.length-1].dataTimestamp;
         $('#dovLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
         
         if (this.autoUpdateInstance) {

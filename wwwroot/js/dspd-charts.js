@@ -1,5 +1,4 @@
 // dspd-charts.js - Модуль для визуализации данных датчика состояния дорожного полотна
-// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const DSPDCharts = {
     chart: null,
@@ -114,18 +113,15 @@ const DSPDCharts = {
     },
 
     initDateRangeSlider: function() {
-        // Проверяем наличие DateRangeSlider
         if (typeof DateRangeSlider === 'undefined') {
             console.error('DateRangeSlider не загружен!');
             return;
         }
 
-        // Создаем или получаем экземпляр слайдера
         let slider = DateRangeSlider.get('dspd');
         if (!slider) {
             slider = DateRangeSlider.create('dspd', {
                 onRangeChange: (filteredData) => {
-                    // Временно заменяем все измерения отфильтрованными для отрисовки
                     const originalData = this.allMeasurements;
                     this.allMeasurements = filteredData;
                     this.renderChart();
@@ -135,57 +131,30 @@ const DSPDCharts = {
             });
         }
 
-        // Инициализируем слайдер с текущими данными
         DateRangeSlider.initSlider('dspd', this.allMeasurements);
     },
 
     createParameterRadios: function() {
-        this.createRadioGroup('RoadCondition', this.roadConditionParameters);
-        this.createRadioGroup('PrecipitationLayer', this.precipitationLayerParameters);
-        this.createRadioGroup('Technical', this.technicalParameters);
+        this.createRadioGroup('roadCondition', this.roadConditionParameters);
+        this.createRadioGroup('precipitationLayer', this.precipitationLayerParameters);
+        this.createRadioGroup('technical', this.technicalParameters);
     },
 
     createRadioGroup: function(groupName, parameters) {
-        const container = $(`#dspd${groupName}Radios`);
+        const container = $(`#dspd${groupName.charAt(0).toUpperCase() + groupName.slice(1)}Radios`);
         if (!container.length) return;
 
         container.empty();
         
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
-            container.append(this.createRadio(p, groupName));
+            container.append(ChartUtils.createParameterRadio(p, groupName, 'dspd-parameter-radio'));
         });
-    },
-
-    createRadio: function(param, group) {
-        const groupPrefix = group.toLowerCase();
-        const radioName = `dspd_${groupPrefix}_param`;
-        
-        return $(`
-            <div class="col-md-4 col-sm-6 mb-2">
-                <div class="form-check">
-                    <input class="form-check-input dspd-parameter-radio"
-                           type="radio"
-                           name="${radioName}"
-                           id="dspd_radio_${param.id}"
-                           value="${param.id}"
-                           data-param-id="${param.id}"
-                           data-group="${param.group}"
-                           data-property="${param.property}"
-                           ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="dspd_radio_${param.id}" title="${param.description || ''}">
-                        <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
-                        <span style="display:inline-block; width:8px; height:8px; background-color:${param.color}; border-radius:50%; margin-right:4px;"></span>
-                        ${param.name} ${param.unit ? `(${param.unit})` : ''}
-                    </label>
-                </div>
-            </div>
-        `);
     },
 
     updateVisibleParameters: function() {
         const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
-                const radioId = `dspd_radio_${p.id}`;
+                const radioId = `radio_${p.group}_${p.id}`;
                 p.visible = $(`#${radioId}`).is(':checked');
             });
         };
@@ -248,11 +217,10 @@ const DSPDCharts = {
                 this.updateStatistics();
                 this.updateLastUpdateTime(data);
 
-                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
-                    this.showNotification('Получены новые данные DSPD');
+                    ChartUtils.showNotification('Получены новые данные DSPD', 'success');
                 }
 
                 this.isLoading = false;
@@ -271,12 +239,12 @@ const DSPDCharts = {
     renderChart: function() {
         if (!this.allMeasurements?.length) return;
 
-        const m = this.allMeasurements;
-        const ts = m.map(x => new Date(x.dataTimestamp));
+        const measurements = this.allMeasurements;
+        const timestamps = measurements.map(x => new Date(x.dataTimestamp));
 
-        const range = this.getTimeRange(ts);
-        this.updateTimeScaleLabel(range);
-        const cfg = this.getTimeConfig(range);
+        const timeRange = ChartUtils.getTimeRange(timestamps);
+        ChartUtils.updateTimeScaleLabel('dspd', timeRange);
+        const cfg = ChartUtils.getTimeConfig(timeRange);
 
         const ctx = document.getElementById('dspdChart')?.getContext('2d');
         if (!ctx) return;
@@ -307,7 +275,7 @@ const DSPDCharts = {
         const datasets = [];
 
         selected.forEach((p, i) => {
-            const validData = m
+            const validData = measurements
                 .map(x => {
                     const value = x[p.property];
                     return {
@@ -323,7 +291,7 @@ const DSPDCharts = {
                 label: p.name + (p.unit ? ` (${p.unit})` : ''),
                 data: validData,
                 borderColor: p.color,
-                backgroundColor: this.hexToRgba(p.color, 0.1),
+                backgroundColor: ChartUtils.hexToRgba(p.color, 0.1),
                 borderWidth: 2,
                 pointRadius: 3,
                 pointHoverRadius: 6,
@@ -381,7 +349,7 @@ const DSPDCharts = {
 
         this.chart = new Chart(ctx, {
             type: this.currentChartType === 'scatter' ? 'scatter' : 'line',
-            data: { labels: ts, datasets },
+            data: { labels: timestamps, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -432,6 +400,7 @@ const DSPDCharts = {
     updateStatistics: function() {
         const container = $('#dspdStatisticsContainer');
         if (!container.length) return;
+        
         container.empty();
 
         const selected = this.getSelectedParameters();
@@ -441,95 +410,33 @@ const DSPDCharts = {
         }
 
         selected.forEach(p => {
-            const vals = this.allMeasurements
+            const values = this.allMeasurements
                 .map(m => {
                     const v = m[p.property];
                     return v != null ? parseFloat(v) : null;
                 })
                 .filter(v => v != null);
 
-            if (!vals.length) return;
+            if (values.length === 0) return;
 
-            const min = Math.min(...vals);
-            const max = Math.max(...vals);
-            const avg = vals.reduce((a,b) => a + b, 0) / vals.length;
-            const cur = vals[vals.length-1];
-
-            const col = $(`
-                <div class="col-md-12">
-                    <div class="p-2 border rounded" style="border-left: 4px solid ${p.color} !important;">
-                        <div class="small text-muted">
-                            <i class="fas ${p.icon || 'fa-chart-line'} me-1"></i> ${p.name}
-                        </div>
-                        <div class="d-flex justify-content-between mt-1">
-                            <span class="small">тек. <strong>${cur.toFixed(2)}</strong></span>
-                            <span class="small">мин <strong>${min.toFixed(2)}</strong></span>
-                            <span class="small">ср. <strong>${avg.toFixed(2)}</strong></span>
-                            <span class="small">макс <strong>${max.toFixed(2)}</strong></span>
-                        </div>
-                    </div>
-                </div>
-            `);
-            container.append(col);
+            const statItem = ChartUtils.createStatisticsItem(p, values);
+            if (statItem) container.append(statItem);
         });
     },
 
     updateLastUpdateTime: function(data) {
-        const m = data.measurements || [];
-        if (!m.length) {
+        const measurements = data.measurements || [];
+        if (!measurements.length) {
             $('#dspdLastUpdateTime').text('Нет данных');
             return;
         }
-        const last = m[m.length-1].dataTimestamp;
+        
+        const last = measurements[measurements.length-1].dataTimestamp;
         $('#dspdLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
         
         if (this.autoUpdateInstance) {
             this.autoUpdateInstance.updateLastUpdateTime(last);
         }
-    },
-
-    showNotification: function(msg) {
-        const n = $(`
-            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index:9999;" role="alert">
-                <i class="fas fa-info-circle"></i> ${msg}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append(n);
-        setTimeout(() => n.alert('close'), 3000);
-    },
-
-    hexToRgba: function(hex, a) {
-        const r = parseInt(hex.slice(1,3),16);
-        const g = parseInt(hex.slice(3,5),16);
-        const b = parseInt(hex.slice(5,7),16);
-        return `rgba(${r},${g},${b},${a})`;
-    },
-
-    getTimeRange: function(ts) {
-        if (ts.length < 2) return 'day';
-        const diff = (Math.max(...ts.map(d=>d.getTime())) - Math.min(...ts.map(d=>d.getTime()))) / 3600000;
-        if (diff <= 24) return 'hour';
-        if (diff <= 72) return 'hour6';
-        if (diff <= 168) return 'day';
-        if (diff <= 720) return 'week';
-        return 'month';
-    },
-
-    getTimeConfig: function(r) {
-        const c = {
-            hour:   { unit: 'hour',   displayFormats: { hour:   'HH:mm' } },
-            hour6:  { unit: 'hour',   displayFormats: { hour:   'HH:mm' } },
-            day:    { unit: 'day',    displayFormats: { day:    'dd.MM' } },
-            week:   { unit: 'week',   displayFormats: { week:   'dd.MM' } },
-            month:  { unit: 'month',  displayFormats: { month:  'MMM YYYY' } }
-        };
-        return c[r] || c.day;
-    },
-
-    updateTimeScaleLabel: function(r) {
-        const l = { hour: 'часы', hour6: '6 часов', day: 'дни', week: 'недели', month: 'месяцы' };
-        $('#dspdTimeScaleLabel').text(l[r] || 'авто');
     }
 };
 

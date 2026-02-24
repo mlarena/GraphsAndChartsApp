@@ -1,5 +1,4 @@
 // iws-charts.js - Модуль для визуализации данных метеостанции IWS
-// Модифицирован: вынесена логика слайдера в DateRangeSlider
 
 const IWSCharts = {
     chart: null,
@@ -130,18 +129,15 @@ const IWSCharts = {
     },
 
     initDateRangeSlider: function() {
-        // Проверяем наличие DateRangeSlider
         if (typeof DateRangeSlider === 'undefined') {
             console.error('DateRangeSlider не загружен!');
             return;
         }
 
-        // Создаем или получаем экземпляр слайдера
         let slider = DateRangeSlider.get('iws');
         if (!slider) {
             slider = DateRangeSlider.create('iws', {
                 onRangeChange: (filteredData) => {
-                    // Временно заменяем все измерения отфильтрованными для отрисовки
                     const originalData = this.allMeasurements;
                     this.allMeasurements = filteredData;
                     this.renderChart();
@@ -151,58 +147,32 @@ const IWSCharts = {
             });
         }
 
-        // Инициализируем слайдер с текущими данными
         DateRangeSlider.initSlider('iws', this.allMeasurements);
     },
 
     createParameterRadios: function() {
-        this.createRadioGroup('Weather', this.weatherParameters);
-        this.createRadioGroup('Wind', this.windParameters);
-        this.createRadioGroup('Precipitation', this.precipitationParameters);
-        this.createRadioGroup('Pressure', this.pressureParameters);
-        this.createRadioGroup('Technical', this.technicalParameters);
+        this.createRadioGroup('weather', this.weatherParameters);
+        this.createRadioGroup('wind', this.windParameters);
+        this.createRadioGroup('precipitation', this.precipitationParameters);
+        this.createRadioGroup('pressure', this.pressureParameters);
+        this.createRadioGroup('technical', this.technicalParameters);
     },
 
     createRadioGroup: function(groupName, parameters) {
-        const container = $(`#iws${groupName}Radios`);
+        const container = $(`#iws${groupName.charAt(0).toUpperCase() + groupName.slice(1)}Radios`);
         if (!container.length) return;
 
         container.empty();
         
         parameters.sort((a, b) => a.order - b.order).forEach(p => {
-            container.append(this.createRadio(p, groupName.toLowerCase()));
+            container.append(ChartUtils.createParameterRadio(p, groupName, 'iws-parameter-radio'));
         });
-    },
-
-    createRadio: function(param, group) {
-        const radioName = `iws_${group}_param`;
-        
-        return $(`
-            <div class="col-md-4 col-sm-6 mb-2">
-                <div class="form-check">
-                    <input class="form-check-input iws-parameter-radio"
-                           type="radio"
-                           name="${radioName}"
-                           id="iws_radio_${param.id}"
-                           value="${param.id}"
-                           data-param-id="${param.id}"
-                           data-group="${group}"
-                           data-property="${param.property}"
-                           ${param.visible ? 'checked' : ''}>
-                    <label class="form-check-label small" for="iws_radio_${param.id}" title="${param.description || ''}">
-                        <i class="fas ${param.icon || 'fa-chart-line'} me-1" style="color:${param.color};"></i>
-                        <span style="display:inline-block; width:8px; height:8px; background-color:${param.color}; border-radius:50%; margin-right:4px;"></span>
-                        ${param.name} ${param.unit ? `(${param.unit})` : ''}
-                    </label>
-                </div>
-            </div>
-        `);
     },
 
     updateVisibleParameters: function() {
         const updateGroup = (groupParams) => {
             groupParams.forEach(p => {
-                const radioId = `iws_radio_${p.id}`;
+                const radioId = `radio_${p.group}_${p.id}`;
                 p.visible = $(`#${radioId}`).is(':checked');
             });
         };
@@ -272,11 +242,10 @@ const IWSCharts = {
                 this.updateStatistics();
                 this.updateLastUpdateTime(data);
 
-                // Инициализируем или обновляем слайдер
                 setTimeout(() => this.initDateRangeSlider(), 50);
 
                 if (silent && hasNew && this.autoUpdateInstance && this.autoUpdateInstance.enabled) {
-                    this.showNotification('Получены новые данные IWS');
+                    ChartUtils.showNotification('Получены новые данные IWS', 'success');
                 }
 
                 this.isLoading = false;
@@ -298,9 +267,9 @@ const IWSCharts = {
         const measurements = this.allMeasurements;
         const timestamps = measurements.map(x => new Date(x.dataTimestamp));
 
-        const timeRange = this.getTimeRange(timestamps);
-        this.updateTimeScaleLabel(timeRange);
-        const cfg = this.getTimeConfig(timeRange);
+        const timeRange = ChartUtils.getTimeRange(timestamps);
+        ChartUtils.updateTimeScaleLabel('iws', timeRange);
+        const cfg = ChartUtils.getTimeConfig(timeRange);
 
         const ctx = document.getElementById('iwsChart')?.getContext('2d');
         if (!ctx) return;
@@ -347,7 +316,7 @@ const IWSCharts = {
                 label: `${param.name} ${param.unit ? `(${param.unit})` : ''}`,
                 data: validData,
                 borderColor: param.color,
-                backgroundColor: this.hexToRgba(param.color, 0.1),
+                backgroundColor: ChartUtils.hexToRgba(param.color, 0.1),
                 borderWidth: 2,
                 pointRadius: 3,
                 pointHoverRadius: 6,
@@ -501,35 +470,8 @@ const IWSCharts = {
 
             if (values.length === 0) return;
 
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            const avg = values.reduce((a, b) => a + b, 0) / values.length;
-            const current = values[values.length - 1];
-
-            const formatValue = (value) => {
-                if (param.unit === '°' && param.id === 'windDirection') {
-                    return value.toFixed(0) + '°';
-                }
-                return value.toFixed(2);
-            };
-
-            const col = $(`
-                <div class="col-md-12">
-                    <div class="p-2 border rounded" style="border-left: 4px solid ${param.color} !important;">
-                        <div class="small text-muted">
-                            <i class="fas ${param.icon || 'fa-chart-line'} me-1"></i> ${param.name}
-                        </div>
-                        <div class="d-flex justify-content-between mt-1">
-                            <span class="small">тек. <strong>${formatValue(current)}</strong></span>
-                            <span class="small">мин <strong>${formatValue(min)}</strong></span>
-                            <span class="small">ср. <strong>${formatValue(avg)}</strong></span>
-                            <span class="small">макс <strong>${formatValue(max)}</strong></span>
-                        </div>
-                    </div>
-                </div>
-            `);
-            
-            container.append(col);
+            const statItem = ChartUtils.createStatisticsItem(param, values);
+            if (statItem) container.append(statItem);
         });
     },
 
@@ -539,62 +481,13 @@ const IWSCharts = {
             $('#iwsLastUpdateTime').text('Нет данных');
             return;
         }
+        
         const last = measurements[measurements.length - 1].dataTimestamp;
         $('#iwsLastUpdateTime').text(moment(last).format('DD.MM.YYYY HH:mm:ss'));
         
         if (this.autoUpdateInstance) {
             this.autoUpdateInstance.updateLastUpdateTime(last);
         }
-    },
-
-    showNotification: function(message) {
-        const $n = $(`
-            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index:9999;" role="alert">
-                <i class="fas fa-info-circle"></i> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append($n);
-        setTimeout(() => $n.alert('close'), 3000);
-    },
-
-    hexToRgba: function(hex, alpha) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    },
-
-    getTimeRange: function(timestamps) {
-        if (timestamps.length < 2) return 'day';
-        const diffHours = (Math.max(...timestamps.map(d => d.getTime())) - Math.min(...timestamps.map(d => d.getTime()))) / 3600000;
-        if (diffHours <= 24) return 'hour';
-        if (diffHours <= 72) return 'hour6';
-        if (diffHours <= 168) return 'day';
-        if (diffHours <= 720) return 'week';
-        return 'month';
-    },
-
-    getTimeConfig: function(range) {
-        const configs = {
-            hour:   { unit: 'hour',   displayFormats: { hour: 'HH:mm' } },
-            hour6:  { unit: 'hour',   displayFormats: { hour: 'HH:mm' } },
-            day:    { unit: 'day',    displayFormats: { day: 'dd.MM' } },
-            week:   { unit: 'week',   displayFormats: { week: 'dd.MM' } },
-            month:  { unit: 'month',  displayFormats: { month: 'MMM yyyy' } }
-        };
-        return configs[range] || configs.day;
-    },
-
-    updateTimeScaleLabel: function(range) {
-        const labels = {
-            hour: 'часы',
-            hour6: '6 часов',
-            day: 'дни',
-            week: 'недели',
-            month: 'месяцы'
-        };
-        $('#iwsTimeScaleLabel').text(labels[range] || 'авто');
     }
 };
 
