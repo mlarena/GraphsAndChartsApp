@@ -17,7 +17,7 @@
                     <div><i class="fas fa-building text-info"></i> <span>@Model.MonitoringPostName</span></div>
                     <div><i class="fas fa-clock text-info"></i> <span id="dovLastUpdateTime">Загрузка...</span></div>
                     
-                    <!-- ВСТАВЛЯЕМ КОМПОНЕНТ АВТООБНОВЛЕНИЯ -->
+                    <!-- АВТООБНОВЛЕНИЕ - используем новый компонент -->
                     @await Html.PartialAsync("_AutoUpdatePartial", new GraphsAndChartsApp.ViewModels.AutoUpdateViewModel 
                     { 
                         Prefix = "dov", 
@@ -29,18 +29,31 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <span class="text-muted me-2"><i class="fas fa-chart-pie"></i></span>
-                        <div class="btn-group" role="group" id="dovChartTypeRadio">
-                            <input type="radio" class="btn-check" name="dovChartType" id="dovChartTypeVisibility" value="visibility" autocomplete="off" checked>
-                            <label class="btn btn-outline-info btn-sm" for="dovChartTypeVisibility">📈 Дальность видимости</label>
-                            
-                            <input type="radio" class="btn-check" name="dovChartType" id="dovChartTypeBrightness" value="brightness" autocomplete="off">
-                            <label class="btn btn-outline-info btn-sm" for="dovChartTypeBrightness">☀️ Освещенность (bright_flag)</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-2"><i class="fas fa-chart-pie"></i></span>
+                            <div class="btn-group" role="group" id="dovChartTypeRadio">
+                                <input type="radio" class="btn-check" name="dovChartType" id="dovChartTypeVisibility" value="visibility" autocomplete="off" checked>
+                                <label class="btn btn-outline-info btn-sm" for="dovChartTypeVisibility">📈 Дальность видимости</label>
+                                
+                                <input type="radio" class="btn-check" name="dovChartType" id="dovChartTypeBrightness" value="brightness" autocomplete="off">
+                                <label class="btn btn-outline-info btn-sm" for="dovChartTypeBrightness">☀️ Освещенность</label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-2">Стиль:</span>
+                            <div class="btn-group" role="group" id="dovChartStyleRadio">
+                                <input type="radio" class="btn-check" name="dovChartStyle" id="dovChartStyleLine" value="line" autocomplete="off" checked>
+                                <label class="btn btn-outline-secondary btn-sm" for="dovChartStyleLine">Линейный</label>
+                                
+                                <input type="radio" class="btn-check" name="dovChartStyle" id="dovChartStyleScatter" value="scatter" autocomplete="off">
+                                <label class="btn btn-outline-secondary btn-sm" for="dovChartStyleScatter">Точечный</label>
+                            </div>
                         </div>
                     </div>
                     <div class="d-flex align-items-center">
-                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dov", OutlineColor = "primary", ActiveDays = 1 })
+                        @await Html.PartialAsync("_TimeRangePartial", new { Prefix = "dov", OutlineColor = "info", ActiveDays = 1 })
                     </div>
                 </div>
             </div>

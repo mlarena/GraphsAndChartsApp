@@ -6,6 +6,7 @@ const DOVCharts = {
     currentSensorId: null,
     allMeasurements: [],
     currentChartType: 'visibility',
+    currentChartStyle: 'line',
     isLoading: false,
     updateTimeout: null,
     currentDays: 1,
@@ -34,12 +35,23 @@ const DOVCharts = {
             this.loadData(days);
         });
 
-        // Обработчик выбора типа графика (радио-кнопки)
+        // Обработчик выбора типа данных (радио-кнопки visibility/brightness)
         $('input[name="dovChartType"]').off('change').on('change', (e) => {
             this.currentChartType = $(e.currentTarget).val();
             this.toggleChart();
             this.updateChartTitle();
 
+            if (this.currentChartType === 'visibility') {
+                this.renderVisibilityChart({ measurements: this.allMeasurements });
+            } else {
+                this.renderBrightnessChart({ measurements: this.allMeasurements });
+            }
+        });
+
+        // Обработчик выбора стиля графика (линейный/точечный)
+        $('input[name="dovChartStyle"]').off('change').on('change', (e) => {
+            this.currentChartStyle = $(e.currentTarget).val();
+            
             if (this.currentChartType === 'visibility') {
                 this.renderVisibilityChart({ measurements: this.allMeasurements });
             } else {
@@ -197,43 +209,61 @@ const DOVCharts = {
 
         if (this.visibilityChart) this.visibilityChart.destroy();
 
-        this.visibilityChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: timestamps,
-                datasets: [{
-                    label: 'Дальность видимости (м)',
-                    data: values,
-                    borderColor: 'rgba(23, 162, 184, 1)',
-                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 300 },
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: cfg.unit,
-                            displayFormats: cfg.displayFormats,
-                            tooltipFormat: 'dd.MM.yyyy HH:mm'
-                        }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        title: { display: true, text: 'Метры' }
+        const chartType = this.currentChartStyle === 'scatter' ? 'scatter' : 'line';
+        
+        const datasets = [{
+            label: 'Дальность видимости (м)',
+            data: this.currentChartStyle === 'scatter' 
+                ? measurements.map(x => ({ x: new Date(x.dataTimestamp), y: parseFloat(x.visibleRange) }))
+                : values,
+            borderColor: 'rgba(23, 162, 184, 1)',
+            backgroundColor: this.currentChartStyle === 'scatter' 
+                ? 'rgba(23, 162, 184, 0.8)'
+                : 'rgba(23, 162, 184, 0.1)',
+            borderWidth: 2,
+            pointRadius: this.currentChartStyle === 'scatter' ? 5 : 3,
+            pointHoverRadius: this.currentChartStyle === 'scatter' ? 8 : 6,
+            tension: this.currentChartStyle === 'line' ? 0.3 : 0,
+            fill: this.currentChartStyle === 'line'
+        }];
+
+        const options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: cfg.unit,
+                        displayFormats: cfg.displayFormats,
+                        tooltipFormat: 'dd.MM.yyyy HH:mm'
                     }
+                },
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Метры' }
                 }
             }
-        });
+        };
+
+        if (this.currentChartStyle === 'scatter') {
+            this.visibilityChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: options
+            });
+        } else {
+            this.visibilityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: datasets
+                },
+                options: options
+            });
+        }
     },
 
     renderBrightnessChart: function(data) {
@@ -261,51 +291,74 @@ const DOVCharts = {
 
         if (this.brightnessChart) this.brightnessChart.destroy();
 
-        this.brightnessChart = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Флаг яркости',
-                    data: measurements.map(x => ({ x: new Date(x.dataTimestamp), y: x.brightFlag })),
-                    backgroundColor: colors,
-                    pointRadius: 6,
-                    pointHoverRadius: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 300 },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => {
-                                const flag = ctx.raw.y;
-                                const texts = ['День', 'Сумерки', 'Темно'];
-                                return `${texts[flag] || '—'} в ${moment(ctx.raw.x).format('DD.MM.YYYY HH:mm')}`;
-                            }
+        const chartType = this.currentChartStyle === 'scatter' ? 'scatter' : 'line';
+
+        const datasets = [{
+            label: 'Флаг яркости',
+            data: measurements.map(x => ({ x: new Date(x.dataTimestamp), y: x.brightFlag })),
+            backgroundColor: colors,
+            borderColor: this.currentChartStyle === 'line' ? 'rgba(23, 162, 184, 0.5)' : 'transparent',
+            borderWidth: this.currentChartStyle === 'line' ? 1 : 0,
+            pointRadius: this.currentChartStyle === 'scatter' ? 6 : 3,
+            pointHoverRadius: this.currentChartStyle === 'scatter' ? 10 : 6,
+            tension: this.currentChartStyle === 'line' ? 0.1 : 0,
+            stepped: this.currentChartStyle === 'line'
+        }];
+
+        const options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const flag = ctx.raw.y;
+                            const texts = ['День', 'Сумерки', 'Темно'];
+                            return `${texts[flag] || '—'} в ${moment(ctx.raw.x).format('DD.MM.YYYY HH:mm')}`;
                         }
                     }
                 },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: cfg.unit,
-                            displayFormats: cfg.displayFormats
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        max: 2.5,
-                        ticks: {
-                            stepSize: 1,
-                            callback: v => ['День', 'Сумерки', 'Темно'][v] || v
-                        }
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: cfg.unit,
+                        displayFormats: cfg.displayFormats
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 2.5,
+                    ticks: {
+                        stepSize: 1,
+                        callback: v => ['День', 'Сумерки', 'Темно'][v] || v
                     }
                 }
             }
-        });
+        };
+
+        if (this.currentChartStyle === 'scatter') {
+            this.brightnessChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: options
+            });
+        } else {
+            this.brightnessChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: datasets.map(ds => ({
+                        ...ds,
+                        data: flags
+                    }))
+                },
+                options: options
+            });
+        }
     },
 
     updateStatistics: function(data) {
