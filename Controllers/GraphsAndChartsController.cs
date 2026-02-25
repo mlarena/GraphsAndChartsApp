@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace GraphsAndChartsApp.Controllers
 {
@@ -178,7 +179,7 @@ namespace GraphsAndChartsApp.Controllers
                     PostName = sensor?.MonitoringPost?.Name,
                     Measurements = measurements
                 };
-
+                Console.WriteLine(Json(viewModel).ToString());
                 return Json(viewModel);
             }
             catch (Exception ex)
@@ -295,7 +296,7 @@ namespace GraphsAndChartsApp.Controllers
         }
 
 
-// ==================== DUST МЕТОДЫ ====================
+        // ==================== DUST МЕТОДЫ ====================
 
         [HttpGet]
         public async Task<IActionResult> GetDUSTData(int sensorId, int days = 1)
